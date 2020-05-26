@@ -1,0 +1,36 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  outline: none;
+}
+
+textarea:focus, input:focus{
+  outline: none;
+}
+
+*:focus {
+  outline: none;
+}
+
+.grid {
+  background-color: rgb(51,51,51);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  background-position: -2px -2px, -2px -2px, -1px -1px, -1px -1px;
+  background-image: linear-gradient(rgb(48, 48, 48) 1px, transparent 2px),
+                    linear-gradient(90deg, rgb(48, 48, 48) 1px, transparent 2px),
+                    linear-gradient(rgb(48, 48, 48) 1px, transparent 1px),
+                    linear-gradient(90deg, rgb(48, 48, 48) 1px, transparent 1px);
+}
+
+.node {
+  filter: drop-shadow( 0 5px 5px pink);
+}
+
+.rounded-rect {
+  background: rgb(2,0,36);
+  background: linear-gradient(180deg, rgba(2,0,36,1) 0%, rgba(120,80,170,1) 33%, rgba(120,80,170,1) 67%, rgba(2,0,36,1) 100%);
+}
