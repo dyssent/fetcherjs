@@ -5,7 +5,7 @@ import { act } from 'react-dom/test-utils';
 
 import { wait } from '../../cache/testUtils';
 import { useCacheValue } from '../useCacheValue';
-import { createManager, Manager } from '../../manager';
+import { Manager, createManagerWithMemoryCache } from '../../manager';
 
 describe('useCacheValue', () => {
   let container: HTMLDivElement;
@@ -28,7 +28,7 @@ describe('useCacheValue', () => {
   });
 
   it('can observe a value', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     // Hiject updates so we can run them in the act scope
     manager.updateConfig({hooks: {
       onNotifySub: (sub, state, reason) => {

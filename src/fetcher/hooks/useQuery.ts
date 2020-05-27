@@ -1,14 +1,16 @@
 import { useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import { CacheKeyParam, CacheKeyFunc, Tag, TagMatch } from '../cache';
-import { Manager, RequestState, ManagerContext, RequestQueryOptions, SubReason, BatcherFunc } from '../manager';
+import { Manager, RequestState, RequestQueryOptions, SubReason, BatcherFunc, RequestQueryOptionsBase } from '../manager';
 
+import { ManagerContext, QueryOptionsContext } from './context';
 import { useWindowFocus } from './useWindowFocus';
 import { useOnline } from './useOnline';
 import { useTimer } from './useTimer';
 import { useKeyHash } from './useKeyHash';
 import { useImmediateEffect } from './useImmediateEffect';
-import { SSR } from './utils';
+import { isSSR } from './utils';
+import { useCallbackUnstable } from './useCallbackUnstable';
 
 export type QueryArgs<K, ARGS extends unknown[]> = K extends false | undefined | null ? Partial<ARGS> : ARGS;
 export interface QueryRequestState<T, E = Error> extends RequestState<T, E> {
@@ -87,9 +89,8 @@ export interface QueryCallbacks<T, E = Error> {
   onUpdate?: (state: QueryRequestState<T, E>, reason: SubReason, manager: Manager) => void;
 }
 
-export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = unknown[]>
-  extends Omit<RequestQueryOptions<T, RT, ST, E>, 'type'>,
-    QueryCallbacks<T, E> {
+export type QueryOptionsBase<T, RT = T, ST = T, E = Error>
+  = Omit<RequestQueryOptionsBase<T, RT, ST, E>, 'type'> & {
   /**
    * refreshOnFocus refreshes the query if window gets focused.
    */
@@ -109,12 +110,65 @@ export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown
    * moment has to pass in order to trigger a refresh.
    */
   refreshOnOnlineThreshold?: number;
-
   /**
    * refreshInterval is an automatic refresh every X milliseconds.
    */
   refreshInterval?: number;
+  /**
+   * If true, will throw an error on render in case a request is pending or has an error.
+   */
+  suspense?: boolean;
 
+  /**
+   * By default, rendering on the server side resolves all queries promises before returning the rendered
+   * content to the client. It is sometimes undesirable to wait for those, and then can be manually toggled
+   * to off if server should not attempt to query those and leave it for the client side only. Default value
+   * is true, however providing false will turn this off.
+   */
+  ssr?: boolean;
+
+  /**
+   * argsStrict enables strict arguments check. By default, arguments are checked deeply,
+   * but without strict object comparison. This enables struct object comparison, which might be desirable
+   * for performance reasons.
+   */
+  argsStrict?: boolean;
+  /**
+   * argsDepth defines the number of levels the depth check has to go in order to detect if arguments changed.
+   * The default value is -1, which means there is no depth level. Setting it to 1 would make it check only
+   * the first level, without digging deeper. Examples:
+   * Depth: 0, left: [1, [2]], right: [1, [3]], result: equal
+   * Depth: 1, left: [1, [2]], right: [1, [3]], result: equal
+   * Depth: 2, left: [1, [2]], right: [1, [3]], result: not equal
+   */
+  argsDepth?: number;
+  /**
+   * Unstable request detection enables automatic detection of unstable arguments or request functions. This sometimes
+   * helps find out accidental mistakes where arguments or a request provided is instantiated on each render,
+   * which is considered by the query as a new request which has to be fetched, and this results in indefinite
+   * redraws cycle. If the value is set to false, no detection will be performed. Otherwise, the number represents
+   * number of acceptable "" per second which are considered normal, above that the conclusion is that the request has unstable
+   * params and needs to be terminated as it will never complete anyway. Default value is quite pessimistic and set to 100,
+   * while normally it can only be 1. It might be possible that the host component does a few updates before arriving at the
+   * right arguments for the fetch, but it normally should not happen that often. If a request is manual, this detection
+   * is not performed.
+   */
+  unstableRequestDetectionThreshold?: false | number;
+
+  /**
+   * manager to be used for all the queries and cache. Generally not needed for the regular
+   * use cases, but can be overridden here.
+   */
+  manager?: Manager;
+  /**
+   * cacheKeyFunc can be provided to calculate a key differently from the
+   * default wait via cacheKeyHash
+   */
+  cacheKeyFunc?: CacheKeyFunc;  
+}
+
+export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = unknown[]>
+  extends QueryOptionsBase<T, RT, ST, E>, QueryCallbacks<T, E>, Omit<RequestQueryOptions<T, RT, ST, E>, 'type'> {
   /**
    * initialValue is provided only at start, but if a request fails after that
    * or succeds - its value will be used.
@@ -132,10 +186,7 @@ export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown
    * the value has to be updated.
    */
   retainPreviousValue?: boolean;
-  /**
-   * If true, will throw an error on render in case a request is pending or has an error.
-   */
-  suspense?: boolean;
+
   /**
    * Debounce makes sense to combine with a delay, so that there is time to cancel a previous request,
    * otherwie it may have been already out and interrupting it might still do the actual server request.
@@ -148,14 +199,6 @@ export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown
    * shoot if a refresh function is used.
    */
   manual?: boolean;
-
-  /**
-   * By default, rendering on the server side resolves all queries promises before returning the rendered
-   * content to the client. It is sometimes undesirable to wait for those, and then can be manually toggled
-   * to off if server should not attempt to query those and leave it for the client side only. Default value
-   * is true, however providing false will turn this off.
-   */
-  ssr?: boolean;
 
   /**
    * Batcher is used to combine together multiple requests within a short timeframe into a single request.
@@ -172,16 +215,6 @@ export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown
    *  By default the value is Match All.
    */
   batcherTagsMatch?: TagMatch;
-  /**
-   * manager to be used for all the queries and cache. Generally not needed for the regular
-   * use cases, but can be overridden here.
-   */
-  manager?: Manager;
-  /**
-   * cacheKeyFunc can be provided to calculate a key differently from the
-   * default wait via cacheKeyHash
-   */
-  cacheKeyFunc?: CacheKeyFunc;
 }
 
 export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = unknown[]>(
@@ -204,7 +237,11 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
    */
   ...args: QueryArgs<CacheKeyParam, ARGS>
 ): QueryRequestState<T, E> {
-  const opt = options || {};
+  const defaultOptions = useContext(QueryOptionsContext) as QueryOptionsBase<T, RT, ST, E>;
+  const opt: QueryOptions<T, RT, ST, E, ARGS> = {
+    ...defaultOptions,
+    ...(options || {})
+  };
 
   const contextManager = useContext(ManagerContext);
   const manager = opt.manager || contextManager;
@@ -215,6 +252,9 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
 
   const [cacheKey, cacheFunc] = useKeyHash(key, opt.cacheKeyFunc);
 
+  const unstableThreshold = typeof opt.unstableRequestDetectionThreshold !== 'undefined' ? opt.unstableRequestDetectionThreshold : 100;
+  const unstableCounter = useRef(0);
+  const unstablePrevious = useRef(unstableThreshold !== false ? {request, args} : {});
   const lastKey = useRef(cacheKey);
 
   // Memoize tags, so that a non stable array can be used
@@ -225,9 +265,9 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
   // key might be an array, but we compute a hash of it, so we don't want to provide it
   // as a dependency here, just a hash of it using the cacheKey
   // const r = useCallback(() => request(key, ...args), [request, cacheKey, ...args]);
-  const mr = useCallback(
+  const mr = useCallbackUnstable(
     (forced?: boolean): RequestState<T, E> => {
-      if (!cacheKey || (SSR && opt.ssr === false)) {
+      if (!cacheKey || (isSSR && opt.ssr === false)) {
         return {};
       }
 
@@ -269,7 +309,9 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
       opt.equalityCheck,
       opt.ssr,
       stableTags
-    ]
+    ],
+    opt.argsDepth,
+    opt.argsStrict
   );
 
   // We preserve the latest options callbacks, just so we can use unstable
@@ -400,7 +442,14 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
       return;
     }
 
+    unstableCounter.current = unstableCounter.current + 1;
+
     function onStateChange(v: RequestState<T, E>, reason: SubReason) {
+      // Reset the counter if any other events but init
+      if (typeof reason.pending === 'undefined') {
+        unstableCounter.current = 0;
+      }
+
       setState(v);
       notify(
         {
@@ -460,6 +509,19 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
 
     lastKey.current = cacheKey;
   }, [cacheKey, opt.debounce]);
+
+  if (unstableThreshold !== false) {
+    if (unstableCounter.current > unstableThreshold) {
+      const message =
+      `Unstable ${request !== unstablePrevious.current.request ? 'request function' : 'arguments'} detected for the useQuery request.`;
+      console.error(message);
+      console.error('Key: ', key);
+      console.error('Current args: ', args);
+      console.error('Previous args: ', unstablePrevious.current.args);
+      throw new Error(message);
+    }
+    unstablePrevious.current = {request, args};
+  }
 
   // For suspense or error boundary mode to work, we need to throw an error
   // if a request failed completely, or throw a Promise, so that it can be waited

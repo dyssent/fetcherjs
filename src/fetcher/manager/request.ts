@@ -103,7 +103,7 @@ export interface RequestMutationOptions<T, RT = T, E = Error> extends RequestOpt
   type: 'mutation';
 }
 
-export interface RequestQueryOptions<T, RT = T, ST = T, E = Error> extends RequestOptionsBase<T, RT, E> {
+export interface RequestQueryOptionsBase<T, RT = T, ST = T, E = Error> extends RequestOptionsBase<T, RT, E> {
   type: 'query';
   /**
    * ttl is time to live for the results of this query if it is
@@ -117,15 +117,11 @@ export interface RequestQueryOptions<T, RT = T, ST = T, E = Error> extends Reque
    */
   staleTTL?: number;
   /**
-   * forced forces the query to execute again even if there is data in cache.
-   */
-  forced?: boolean;
-  /**
    * storage defines operations to be performed on payload when it is
    * placed into the cache and when it is pulled out. Can be effectively
    * used to serialize / deserialize clones, or classes, etc.
    */
-  storage?: RequestOptionsStorage<T, ST>;
+  storage?: RequestOptionsStorage<T, ST>;  
   /**
    * This function gets called when a new values is about to replace the one
    * in cache. If the result is false, it'll replace the value and trigger
@@ -133,7 +129,14 @@ export interface RequestQueryOptions<T, RT = T, ST = T, E = Error> extends Reque
    * and previous one will remain, which is helpful to avoid redraws if the
    * received content is the same.
    */
-  equalityCheck?: (previous: T, next: T) => boolean;
+  equalityCheck?: (previous: T, next: T) => boolean;  
+}
+
+export interface RequestQueryOptions<T, RT = T, ST = T, E = Error> extends RequestQueryOptionsBase<T, RT, ST, E> {
+  /**
+   * forced forces the query to execute again even if there is data in cache.
+   */
+  forced?: boolean;
   /**
    * requests can be tagged so that they can be refetched using tags, or cleared up.
    */

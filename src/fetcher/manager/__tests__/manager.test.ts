@@ -1,6 +1,7 @@
-import { createManager, SubReason, Manager } from '../manager';
+import { SubReason } from '../config';
 import { requestStorageJSON } from '../request';
-import { MemoryCache, TagMatch } from '../../cache';
+import { TagMatch } from '../../cache';
+import { createManagerWithMemoryCache } from '../utility';
 
 const wait = async (time: number) => new Promise(resolve => setTimeout(resolve, time));
 
@@ -10,7 +11,7 @@ describe('query-manager', () => {
   const key3 = 'key3';
 
   it('can perform request', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     const request = () =>
       new Promise(resolve => {
         resolve(10);
@@ -25,7 +26,7 @@ describe('query-manager', () => {
   });
 
   it('can bundle multiple requests into one', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     let requests = 0;
     const request = () =>
       new Promise(resolve => {
@@ -43,7 +44,7 @@ describe('query-manager', () => {
   });
 
   it('ignores request if there is fresh data', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     let calls = 0;
     const request = () =>
       new Promise(resolve => {
@@ -66,7 +67,7 @@ describe('query-manager', () => {
   });
 
   it('performs request if there is stale data', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     let calls = 0;
     const request = () =>
       new Promise(resolve => {
@@ -92,7 +93,7 @@ describe('query-manager', () => {
   });
 
   it('can perform pub/sub', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     const request = (v: number) =>
       new Promise(resolve => {
         resolve(v);
@@ -125,7 +126,7 @@ describe('query-manager', () => {
   });
 
   it('can report errors', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     const request = () =>
       new Promise(() => {
         throw new Error('The thing blew up');
@@ -143,7 +144,7 @@ describe('query-manager', () => {
   });
 
   it('can refetch', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     let offset = 10;
     const request = () =>
       new Promise(resolve => {
@@ -165,7 +166,7 @@ describe('query-manager', () => {
   });
 
   it('can cancel', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     let called = 0;
     const request = () =>
       new Promise(async resolve => {
@@ -207,7 +208,7 @@ describe('query-manager', () => {
   });
 
   it('can provide stats', async () => {
-    const manager = createManager() as Manager<MemoryCache>;
+    const manager = createManagerWithMemoryCache();
     const request = () =>
       new Promise(resolve => {
         resolve(10);
@@ -233,11 +234,10 @@ describe('query-manager', () => {
 
   it('can notify correctly', async () => {
     const notifs: SubReason[] = [];
-    const manager = createManager({
-      request: { retries: 1, retryDecay: () => 50, ttl: 200, staleTTL: 100, type: 'query' },
-      cache: {
-        defaultGCInterval: 100
-      }
+    const manager = createManagerWithMemoryCache({
+      request: { retries: 1, retryDecay: () => 50, ttl: 200, staleTTL: 100, type: 'query' }
+    }, {
+      defaultGCInterval: 100
     });
     const onUpdate = (_: any, reason: SubReason) => {
       notifs.push(reason);
@@ -278,7 +278,7 @@ describe('query-manager', () => {
   });
 
   it('can retry', async () => {
-    const manager = createManager({
+    const manager = createManagerWithMemoryCache({
       request: { retries: 3, retryDecay: () => 50, type: 'query' }
     });
     let attempts = 0;
@@ -303,7 +303,7 @@ describe('query-manager', () => {
   it('can notify when updated or cleared from cache', async () => {
     let updated = false;
     let expired = false;
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     const onUpdate = (_: any, reason: SubReason) => {
       if (reason.manual) {
         updated = true;
@@ -337,7 +337,7 @@ describe('query-manager', () => {
   });
 
   it('can convert on storage', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     const request = () =>
       new Promise(resolve => {
         resolve({
@@ -366,7 +366,7 @@ describe('query-manager', () => {
   });
 
   it('can ignore same payload', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     const request = () =>
       new Promise(resolve => {
         resolve({ value: 100 });
@@ -386,7 +386,7 @@ describe('query-manager', () => {
   });
 
   it('can extract payload', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     const request = () =>
       new Promise<{ value: number }>(resolve => {
         resolve({
@@ -402,7 +402,7 @@ describe('query-manager', () => {
   });
 
   it('can prioritize', async () => {
-    const manager = createManager({
+    const manager = createManagerWithMemoryCache({
       maxParallelRequests: 0
     });
 
@@ -435,7 +435,7 @@ describe('query-manager', () => {
   });
 
   it('can delay request', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     let called = false;
     const request = () =>
       new Promise(resolve => {
@@ -454,7 +454,7 @@ describe('query-manager', () => {
   });
 
   it('can batch requests', async () => {
-    const manager = createManager();
+    const manager = createManagerWithMemoryCache();
     let called = 0;
     const api = (id: number | number[]) =>
       new Promise<number | number[]>(async resolve => {

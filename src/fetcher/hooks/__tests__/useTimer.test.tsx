@@ -11,8 +11,10 @@ const Component = (props: {interval: number}) => {
   const [count, setCounter] = useState(0);
 
   const increment = useCallback(() => {
-    counter.current = counter.current + 1;
-    setCounter(counter.current);
+    act(() => {
+      counter.current = counter.current + 1;
+      setCounter(counter.current);
+    });
   }, []);
 
   useTimer(props.interval, increment);

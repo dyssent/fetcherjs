@@ -1,5 +1,5 @@
 // tslint:disable:react-hooks-nesting
-import React, { Suspense } from 'react';
+import React, { Suspense, useCallback } from 'react';
 import { clear } from 'jest-date-mock';
 import { render, unmountComponentAtNode } from 'react-dom';
 // tslint:disable-next-line:no-submodule-imports
@@ -7,8 +7,7 @@ import { act } from 'react-dom/test-utils';
 
 import { wait } from '../../cache/testUtils';
 import { useQuery, QueryOptions, QueryCallbacks } from '../useQuery';
-import { Manager } from '../../manager';
-import { createManager } from '../../manager/manager';
+import { createManagerWithMemoryCache, Manager } from '../../manager';
 import { cacheKeyHash, MemoryCache } from '../../cache';
 import { renderHook } from '../testUtils';
 
@@ -39,15 +38,45 @@ function FetchNumber<T>(props: {
   );
 }
 
-class ErrorBoundary extends React.Component<{}, {hasError: boolean}> {
+function UnstableQueryRequestComponent(props: {
+  manager: Manager
+}) {
+  const { manager } = props;
+  useQuery(
+    'key',
+    (params: number[]) => new Promise<String>(resolve => resolve(params.map(p => p.toString()).join('.'))),
+    {manager},
+    [1,2]
+  )
+  return null;
+}
+
+function UnstableQueryArgsComponent(props: {
+  manager: Manager
+}) {
+  const { manager } = props;
+  const request = useCallback(
+    (params: number[]) => new Promise<String>(resolve => resolve(params.map(p => p.toString()).join('.'))),
+    []
+  );
+  useQuery(
+    'key',
+    request,
+    {manager, argsStrict: true},
+    [1,2]
+  )
+  return null;
+}
+
+class ErrorBoundary extends React.Component<{}, {hasError: boolean, error?: Error}> {
   constructor(props: {}) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: any) {
+  static getDerivedStateFromError(error: Error) {
     // Update state so the next render will show the fallback UI.
-    return { hasError: true };
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: any, errorInfo: any) {
@@ -57,7 +86,7 @@ class ErrorBoundary extends React.Component<{}, {hasError: boolean}> {
 
   render() {
     if (this.state.hasError) {
-      return <h1>Error happened</h1>;
+    return <h1>Error happened: {this.state.error?.message}</h1>;
     }
 
     return this.props.children;
@@ -72,7 +101,7 @@ describe('useQuery', () => {
     jest.useFakeTimers();
     container = document.createElement('div');
     document.body.appendChild(container);
-    manager = createManager() as Manager<MemoryCache>;
+    manager = createManagerWithMemoryCache();
     // Hiject updates so we can run them in the act scope
     manager.updateConfig({hooks: {
       onNotifySub: (sub, state, reason) => {
@@ -681,5 +710,47 @@ describe('useQuery', () => {
     expect(hook.draws.current).toBe(1);
   });
 
+  it('should withstand unstable args with minimal redraws', async () => {
+    const request = (params: number[]) => new Promise<String>(resolve => resolve(params.map(p => p.toString()).join('.')));
+    const hook = renderHook(
+      container,
+      () => useQuery('key', request, {manager}, [1,2])
+    );
+    await wait(50);
+    expect(hook.result.current.data).toBe('1.2');
+    // Initial, Pending + Fetching, Success
+    expect(hook.draws.current).toBe(3);
+  });
+
+  it('should report unstable request function', async () => {
+    act(() => {
+      render(
+        <ErrorBoundary>
+          <UnstableQueryRequestComponent manager={manager} />
+        </ErrorBoundary>,
+        container
+      );
+    });
+    await wait(5);
+    expect(container.textContent).toContain('Error');
+    expect(container.textContent).toContain('Unstable request function detected');
+  });
+
+  it('should report unstable arguments', async () => {
+    act(() => {
+      render(
+        <ErrorBoundary>
+          <UnstableQueryArgsComponent manager={manager} />
+        </ErrorBoundary>,
+        container
+      );
+    });
+    await wait(5);
+    expect(container.textContent).toContain('Error');
+    expect(container.textContent).toContain('Unstable arguments detected');
+  });
+
+  // TODO Add tests for rehydration of a cache
+  // TODO Add tests with a global config, including with outter Cache context
   // TODO Add one more test for storage, even though would be a bit of redundant with the manager tests
 });

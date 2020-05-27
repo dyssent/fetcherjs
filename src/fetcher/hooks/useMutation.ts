@@ -1,7 +1,8 @@
 import { useContext, useCallback, useRef, useState } from 'react';
 
-import { Manager, RequestState, ManagerContext, RequestMutationOptions, SubReason } from '../manager';
+import { Manager, RequestState, RequestMutationOptions, SubReason } from '../manager';
 import { CacheKeyParam, CacheKeyFunc, cacheKeyHash, computeCacheKey } from '../cache';
+import { ManagerContext } from './context';
 
 export type MutationRequestState<T, E> = RequestState<T, E>;
 

@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { Manager, ManagerContext, RequestState } from '../manager';
+import { Manager, RequestState } from '../manager';
+import { ManagerContext } from './context';
 
 export function useCacheValue<T, E = Error>(
   key?: string,

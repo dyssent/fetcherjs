@@ -6,8 +6,7 @@ import { act } from 'react-dom/test-utils';
 
 import { wait } from '../../cache/testUtils';
 import { useMutation } from '../useMutation';
-import { Manager } from '../../manager';
-import { createManager } from '../../manager/manager';
+import { Manager, createManagerWithMemoryCache } from '../../manager';
 import { renderHook } from '../testUtils';
 
 describe('useMutation', () => {
@@ -18,7 +17,7 @@ describe('useMutation', () => {
     jest.useFakeTimers();
     container = document.createElement('div');
     document.body.appendChild(container);
-    manager = createManager();
+    manager = createManagerWithMemoryCache();
     // Hiject updates so we can run them in the act scope
     manager.updateConfig({hooks: {
       onNotifySub: (sub, state, reason) => {

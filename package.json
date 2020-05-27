@@ -98,6 +98,7 @@
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js",
+    "test:coverage": "node scripts/test.js --coverage",
     "prepublish": "npm run build:all",
     "build:all": "rm -rf dist && npm run build:es6 && npm run build:esm && npm run build:cjs && npm run build:types && npm run build:styles",
     "build:types": "tsc --p tsconfig-types.json --declarationMap --outDir dist/types",

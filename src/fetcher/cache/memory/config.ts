@@ -17,6 +17,11 @@ export interface MemoryCacheJSON {
 }
 
 export interface MemoryCacheStorageConfig {
+  /**
+   * Save gets called when cache records are ready for serialization.
+   * data is a set of records that qualify the matchers. This save
+   * function must be stable.
+   */
   save: (data: MemoryCacheJSON) => void;
   matchers: {
     tags: Tag[];

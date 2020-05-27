@@ -1,3 +1,4 @@
+export * from './config';
 export * from './manager';
-export * from './context';
 export * from './request';
+export * from './utility';
