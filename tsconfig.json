@@ -23,7 +23,7 @@
     "src"
   ],
   "typedocOptions": {
-    "mode": "library",
+    "mode": "modules",
     "out": "docs",
     "theme": "default",
     "hideGenerator": true,
@@ -35,11 +35,16 @@
     "exclude": [
       "**/*.test.tsx",
       "**/*.test.ts",
-      "**/index.ts"
-    ],
-    "toc": [
-      "useQuery",
-      "useMutation"
+      "**/index.ts",
+      "**/testUtils.tsx",
+      "**/testUtils.ts",
+      "**/useCallbackUnstable.ts",
+      "**/useImmediateEffect.ts",
+      "**/useMemoUnstable.ts",
+      "**/useKeyHash.ts",
+      "**/useOnline.ts",
+      "**/useTimer.ts",
+      "**/useWindowFocus.ts"
     ]
   }
 }
