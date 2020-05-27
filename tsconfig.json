@@ -28,10 +28,18 @@
     "theme": "default",
     "hideGenerator": true,
     "stripInternal": true,
+    "excludeExternals": true,
+    "excludeNotExported": true,
+    "excludePrivate": true,
+    "excludeProtected": true,
     "exclude": [
       "**/*.test.tsx",
       "**/*.test.ts",
       "**/index.ts"
+    ],
+    "toc": [
+      "useQuery",
+      "useMutation"
     ]
   }
 }
