@@ -1,5 +1,4 @@
 import { CacheConfig } from '../config';
-import { cacheKeyHash } from '../key';
 import { Tag, TagMatch } from '../tag';
 
 export interface MemoryCacheRecord<T> {

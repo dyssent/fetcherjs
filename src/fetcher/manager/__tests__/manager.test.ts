@@ -1,9 +1,14 @@
 import { SubReason } from '../config';
-import { requestStorageJSON } from '../request';
 import { TagMatch } from '../../cache';
 import { createManagerWithMemoryCache } from '../utility';
+import { RequestOptionsStorage } from '../request';
 
 const wait = async (time: number) => new Promise(resolve => setTimeout(resolve, time));
+
+export const requestStorageJSON: RequestOptionsStorage<unknown, string> = {
+  toCache: (value: unknown) => JSON.stringify(value),
+  fromCache: (value: string) => JSON.parse(value)
+};
 
 describe('query-manager', () => {
   const key1 = 'key1';
@@ -385,7 +390,7 @@ describe('query-manager', () => {
     expect(cacheVal).toBe(manager.fromCache(key1));
   });
 
-  it('can extract payload', async () => {
+  it('can transform payload', async () => {
     const manager = createManagerWithMemoryCache();
     const request = () =>
       new Promise<{ value: number }>(resolve => {

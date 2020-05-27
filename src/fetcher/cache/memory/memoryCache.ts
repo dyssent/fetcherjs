@@ -21,7 +21,6 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
     ...config
   };
 
-  const rehydrateData: MemoryCacheJSON = rehydrate || {version: 1, records: {}};
   const cache: Record<string, MemoryCacheRecord<unknown>> = {};
   const tags: Record<string, string[]> = {};
   const locks: Record<string, boolean> = {};
@@ -29,10 +28,24 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
   let gcPending: boolean;
 
   if (rehydrate) {
-    // Add tags so that we can correctly handle them during a search
-    const keys = Object.keys(rehydrateData.records);
+    // Process all rehydration data and fill our cache with records.
+    const keys = Object.keys(rehydrate.records);
+    const now = Date.now();
+    let needsGC = false;
     for (const k of keys) {
-      addTags(k, rehydrateData.records[k].tags);
+      const rec = rehydrate.records[k];
+      // Those that got expired while they were stored, will be removed.
+      if (typeof rec.expiresAt !== 'undefined') {
+        if (rec.expiresAt < now) {
+          continue;
+        }
+        needsGC = true;
+      }
+      cache[k] = rec;
+      addTags(k, rec.tags);
+    }
+    if (needsGC) {
+      scheduleCleanup();
     }
   }
 
@@ -209,16 +222,7 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
   function getState<T>(key: string): { value: T; stale?: boolean } | undefined {
     let rec = cache[key] as MemoryCacheRecord<T>;
     if (!rec) {
-      // Check if there is anything in the rehydration data
-      const rehydrateValue = rehydrateData.records[key];
-      if (typeof rehydrateValue !== 'undefined') {
-        // TODO Add support for deserialization if provided for the key
-        cache[key] = rehydrateValue;
-        delete rehydrateData.records[key];
-        rec = rehydrateValue as MemoryCacheRecord<T>;
-      } else {
-        return undefined;
-      }
+      return undefined;
     }
 
     const now = Date.now();
@@ -250,11 +254,6 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
   function clear(key: string) {
     const value = cache[key];
     if (typeof value === 'undefined') {
-      // Remove from rehydration data
-      if (key in rehydrateData.records) {
-        delete rehydrateData.records[key];
-        removeTags(key);
-      }
       return false;
     }
 

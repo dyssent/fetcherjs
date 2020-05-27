@@ -4,11 +4,11 @@ import {
   Request,
   RequestState,
   RequestOptions,
-  requestStorageDirect,
   defaultRetryDecay,
   RequestOptionsStorage
 } from './request';
 import { ManagerSubCallback, ManagerBroadcast, ManagerConfig, defaultManagerConfig, SubReason } from './config';
+import { tagsMatch } from './utility';
 
 /**
  * ManagerStats has basic stats on the current state of the manager.
@@ -191,25 +191,10 @@ interface Batcher<T> {
   maxBatchSize?: number;
 }
 
-export function tagsMatch(requestTags: Tag[] | undefined, tags: Tag[], match: TagMatch): boolean {
-  if (!requestTags) {
-    return false;
-  }
-
-  switch (match) {
-    case TagMatch.All:
-      return (
-        requestTags.length === tags.length &&
-        tags.filter(t => requestTags.indexOf(t) >= 0).length === requestTags.length
-      );
-
-    case TagMatch.Any:
-      return tags.findIndex(t => requestTags.indexOf(t) >= 0) >= 0 ? true : false;
-
-    case TagMatch.None:
-      return tags.findIndex(t => requestTags.indexOf(t) >= 0) >= 0 ? false : true;
-  }
-}
+const requestStorageDirect: RequestOptionsStorage<unknown> = {
+  toCache: (value: unknown) => value,
+  fromCache: (value: unknown) => value
+};
 
 export function createManager<C extends Cache>(config: Partial<ManagerConfig>, cache: C): Manager<C> {
   const cfg = {
@@ -751,7 +736,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
       return undefined;
     }
     const store = storage || (cfg.request && cfg.request.storage) || requestStorageDirect;
-    return store.fromStorage(value) as T;
+    return store.fromCache(value) as T;
   }
 
   function packValue<T, ST>(value: T, storage?: RequestOptionsStorage<T, ST>): ST {
@@ -759,7 +744,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
       T,
       ST
     >;
-    return store.toStorage(value);
+    return store.toCache(value);
   }
 
   function cancel(key: string) {

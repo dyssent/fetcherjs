@@ -29,26 +29,29 @@ export interface RequestState<T, E = Error> {
 
 export interface RequestOptionsStorage<T, ST = T> {
   /**
-   * toStorage gets executed before the value is placed
+   * If storage is only meant to be used for server -> client
+   * cache rehydration, always can be undefined or false, which will
+   * ignore storage on the client during requests and only apply
+   * during rehydration. However, if client intents to store it to a
+   * local storage or somewhere else, this should be set to true. By default
+   * the value for this is false, and generally it is recommended to not
+   * store cache on the client somewhere, as it may have sensitive
+   * information and be useless upon retrieval, due to being outdated.
+   */
+  always?: boolean;
+  /**
+   * toCache gets executed before the value is placed
    * into cache.
    */
-  toStorage: (value: T) => ST;
+  toCache: (value: T) => ST;
   /**
-   * fromStorage gets executed when a value is extracted
-   * from the cache.
+   * fromCache gets executed when a value is extracted
+   * from the cache for the first time. After that, a modified
+   * version is retained until cache updates again, then this method
+   * gets called again.
    */
-  fromStorage: (value: ST) => T;
+  fromCache: (value: ST) => T;
 }
-
-export const requestStorageDirect = {
-  toStorage: (value: unknown) => value,
-  fromStorage: (value: unknown) => value
-};
-
-export const requestStorageJSON = {
-  toStorage: (value: unknown) => JSON.stringify(value),
-  fromStorage: (value: string) => JSON.parse(value)
-};
 
 /**
  * RetryDecayFunc calculates the amount of time that has to pass
@@ -119,7 +122,9 @@ export interface RequestQueryOptionsBase<T, RT = T, ST = T, E = Error> extends R
   /**
    * storage defines operations to be performed on payload when it is
    * placed into the cache and when it is pulled out. Can be effectively
-   * used to serialize / deserialize clones, or classes, etc.
+   * used to serialize / deserialize clones, or classes, etc. If a storage
+   * placement / retrieval is applied, a copy of the retrieved object will
+   * be stored for observer usage, until there are no observers of the object. 
    */
   storage?: RequestOptionsStorage<T, ST>;  
   /**

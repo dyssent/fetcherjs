@@ -1,7 +1,7 @@
 import { useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import { CacheKeyParam, CacheKeyFunc, Tag, TagMatch } from '../cache';
-import { Manager, RequestState, RequestQueryOptions, SubReason, BatcherFunc, RequestQueryOptionsBase } from '../manager';
+import { Manager, RequestState, RequestQueryOptions, SubReason, BatcherFunc, RequestQueryOptionsBase, isSSR } from '../manager';
 
 import { ManagerContext, QueryOptionsContext } from './context';
 import { useWindowFocus } from './useWindowFocus';
@@ -9,7 +9,6 @@ import { useOnline } from './useOnline';
 import { useTimer } from './useTimer';
 import { useKeyHash } from './useKeyHash';
 import { useImmediateEffect } from './useImmediateEffect';
-import { isSSR } from './utils';
 import { useCallbackUnstable } from './useCallbackUnstable';
 
 export type QueryArgs<K, ARGS extends unknown[]> = K extends false | undefined | null ? Partial<ARGS> : ARGS;
