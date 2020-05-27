@@ -23,9 +23,12 @@
     "src"
   ],
   "typedocOptions": {
+    "inputFiles": [
+			"./src/fetcher"
+		],
     "mode": "modules",
     "out": "docs",
-    "theme": "default",
+    "theme": "node_modules/typedoc-neo-theme/bin/default",
     "hideGenerator": true,
     "stripInternal": true,
     "excludeExternals": true,
