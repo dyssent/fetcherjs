@@ -1,6 +1,9 @@
 import { useRef } from 'react';
 import { deepEqual } from './utils';
 
+/**
+ * @internal
+ */
 export function useMemoUnstable<T>(
   func: () => T,
   deps?: unknown[],

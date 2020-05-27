@@ -28,6 +28,9 @@ export interface ManagerStats {
   requests: number;
 }
 
+/**
+ * Manager interface
+ */
 export interface Manager<C extends Cache = Cache> {
   /**
    * request starts a promise request, if there is data already in the cache, it'll
@@ -196,6 +199,11 @@ const requestStorageDirect: RequestOptionsStorage<unknown> = {
   fromCache: (value: unknown) => value
 };
 
+/**
+ * Create an instance of a manager with config and cache provided.
+ * @param config
+ * @param cache 
+ */
 export function createManager<C extends Cache>(config: Partial<ManagerConfig>, cache: C): Manager<C> {
   const cfg = {
     ...defaultManagerConfig,

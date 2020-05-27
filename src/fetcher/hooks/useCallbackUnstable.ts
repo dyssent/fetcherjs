@@ -1,6 +1,9 @@
 import { useRef } from 'react';
 import { deepEqual } from './utils';
 
+/**
+ * @internal
+ */
 export function useCallbackUnstable<F extends (...args: any[]) => any>(
   callback: F,
   deps?: unknown[],

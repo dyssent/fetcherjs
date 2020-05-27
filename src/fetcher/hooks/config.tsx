@@ -24,6 +24,9 @@ export interface FetcherConfigProps {
   query?: QueryOptions<unknown>;
 }
 
+/**
+ * Fetcher global configuration, should wrap the rest of the application for those to apply.
+ */
 export const FetcherConfig = React.memo((props: React.PropsWithChildren<FetcherConfigProps>) => {
   const {
     cache: cacheConfig,

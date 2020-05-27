@@ -1,5 +1,8 @@
 export type Tag = string;
 
+/**
+ * A set of matchers for tags.
+ */
 export enum TagMatch {
   /**
    * Match entities that have all of the tags.

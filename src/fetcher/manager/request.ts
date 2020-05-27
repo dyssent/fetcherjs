@@ -153,7 +153,10 @@ export type RequestOptions<T, RT = T, ST = T, E = Error> =
   | RequestQueryOptions<T, RT, ST, E>;
 export type PromiseWithCancel<T> = Promise<T> & { cancel?: () => void };
 
-// Internal model for the RequestManager
+/**
+ * Internal model for the RequestManager
+ * @internal
+ */
 export interface Request<T, RT = T, ST = T, E = any, ARGS extends unknown[] = unknown[]> {
   r: (...args: ARGS) => PromiseWithCancel<unknown>;
   args: ARGS;

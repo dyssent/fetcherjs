@@ -2,6 +2,10 @@ import { advanceBy } from 'jest-date-mock';
 import { act } from 'react-dom/test-utils';
 
 const flushPromises = () => new Promise(res => process.nextTick(res));
+
+/**
+ * @internal
+ */
 export const wait = async (time: number) => {
   advanceBy(time);
   jest.advanceTimersByTime(time);

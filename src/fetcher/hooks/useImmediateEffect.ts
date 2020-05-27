@@ -5,6 +5,10 @@ const dummy = (): void => {
 };
 
 type EffectFuncResult = void | (() => void);
+
+/**
+ * @internal
+ */
 export function useImmediateEffect<F extends (first?: boolean) => EffectFuncResult, D extends unknown[]>(func: F, deps: D) {
   const mounted = useRef(false);
   const cancel = useRef<EffectFuncResult | undefined>();

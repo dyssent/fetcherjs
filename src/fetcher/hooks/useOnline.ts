@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 
+/**
+ * @internal
+ */
 export function useOnline(onChange?: (online: boolean) => void, observe: boolean = true, threshold: number = -1) {
   const [online, setOnline] = useState(navigator.onLine);
   const startOfflineAt = useMemo(() => (!online ? Date.now() : -1), []);

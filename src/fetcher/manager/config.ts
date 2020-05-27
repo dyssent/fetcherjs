@@ -30,6 +30,9 @@ export type ManagerSubCallback<T, E, U> = (state: RequestState<T, E>, reason: Su
  */
 export type ManagerBroadcast<T, E, U> = (key: string, state: RequestState<T, E>, reason: SubReason, userData?: U) => void;
 
+/**
+ * Manager configuration
+ */
 export interface ManagerConfig {
   /**
    * debug enables some extra information to be logged
@@ -64,6 +67,9 @@ export interface ManagerConfig {
   maxParallelRequests: number;
 }
 
+/**
+ * Default manager configuration.
+ */
 export const defaultManagerConfig: ManagerConfig = {
   maxParallelRequests: -1
 };

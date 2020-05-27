@@ -4,6 +4,9 @@ import { render } from 'react-dom';
 // tslint:disable-next-line:no-submodule-imports
 import { act } from 'react-dom/test-utils';
 
+/**
+ * @internal
+ */
 export interface RenderHookControls<T, A extends unknown[]> {
   result: React.MutableRefObject<T>;
   draws: React.MutableRefObject<number>;
@@ -13,6 +16,9 @@ export interface RenderHookControls<T, A extends unknown[]> {
   updateArgs: (...hookArgs: A) => void;
 }
 
+/**
+ * @internal
+ */
 export function HookComponent<T, A extends unknown[]>(props: {hook: (...args: A) => T, hookArgs: A, onRender: (value: T) => void}) {
   const { hook: useHook, hookArgs, onRender } = props;
   const result = useHook(...hookArgs);
@@ -20,6 +26,9 @@ export function HookComponent<T, A extends unknown[]>(props: {hook: (...args: A)
   return null;
 }
 
+/**
+ * @internal
+ */
 export function HookHostComponent<T, A extends unknown[]>(props: {
   hook: () => T,
   hookArgs: A,
@@ -56,6 +65,9 @@ export function HookHostComponent<T, A extends unknown[]>(props: {
   );
 }
 
+/**
+ * @internal
+ */
 export function renderHook<T, A extends unknown[]>(container: HTMLDivElement, hook: (...hookArgs: A) => T, ...hookArgs: A): RenderHookControls<T, A> {
   let result: RenderHookControls<T, A>;
 

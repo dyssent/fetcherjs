@@ -2,7 +2,9 @@ import { createMemoryCache, MemoryCacheConfig, TagMatch, Tag } from '../cache';
 import { ManagerConfig } from './config';
 import { createManager } from './manager';
 
-
+/**
+ * @internal
+ */
 export function tagsMatch(requestTags: Tag[] | undefined, tags: Tag[], match: TagMatch): boolean {
   if (!requestTags) {
     return false;
@@ -30,4 +32,7 @@ export function createManagerWithMemoryCache(
   return createManager(config, memoryCache);
 }
 
+/**
+ * @internal
+ */
 export const isSSR = typeof window === 'undefined';

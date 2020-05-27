@@ -2,6 +2,9 @@ import { Tag, TagMatch } from '../tag';
 import { Cache, CacheChangeHandler, CacheChange } from '../cache';
 import { MemoryCacheConfig, MemoryCacheRecord, defaultMemoryCacheConfig, MemoryCacheJSON } from './config';
 
+/**
+ * Memory Cache stats, used for debugging purposes.
+ */
 export interface CacheStats {
     objects: number;
     awaiting: number;
@@ -9,12 +12,20 @@ export interface CacheStats {
     gcPending: boolean;
 }
 
+/**
+ * Memory Cache interface.
+ */
 export interface MemoryCache extends Cache {
   save: (cloned?: boolean) => boolean;
   gc: () => { awaiting: number; cleaned: number };
   stats: () => CacheStats;
 }
 
+/**
+ * Creates a new instance of a memory cache implementation.
+ * @param config 
+ * @param rehydrate 
+ */
 export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehydrate?: MemoryCacheJSON): MemoryCache {
   const cfg = {
     ...defaultMemoryCacheConfig,

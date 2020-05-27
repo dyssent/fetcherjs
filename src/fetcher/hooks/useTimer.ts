@@ -4,6 +4,8 @@ import { useEffect } from 'react';
  * useTimer hook calls onTimer function every interval milliseconds
  * @param interval interval in milliseconds
  * @param onTimer handler to call every interval
+ * 
+ * @internal
  */
 export function useTimer(interval: number | undefined, onTimer: () => void) {
   useEffect(() => {

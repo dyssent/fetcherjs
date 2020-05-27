@@ -2,6 +2,9 @@ import { useMemo, useCallback } from 'react';
 
 import { computeCacheKey, cacheKeyHash, CacheKeyFunc, CacheKeyParam } from '../cache';
 
+/**
+ * @internal
+ */
 export function useKeyHash(
   key: CacheKeyParam,
   func?: CacheKeyFunc

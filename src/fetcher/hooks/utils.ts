@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export function deepEqual(left: unknown, right: unknown, depth: number = -1, strict?: boolean): boolean {
     if (left === right) {
         return true;

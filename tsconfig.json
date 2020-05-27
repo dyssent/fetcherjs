@@ -21,5 +21,17 @@
   },
   "include": [
     "src"
-  ]
+  ],
+  "typedocOptions": {
+    "mode": "library",
+    "out": "docs",
+    "theme": "default",
+    "hideGenerator": true,
+    "stripInternal": true,
+    "exclude": [
+      "**/*.test.tsx",
+      "**/*.test.ts",
+      "**/index.ts"
+    ]
+  }
 }

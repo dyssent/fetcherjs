@@ -3,6 +3,11 @@ import { useContext, useEffect, useState } from 'react';
 import { Manager, RequestState } from '../manager';
 import { ManagerContext } from './context';
 
+/**
+ * Observer for a value in a cache using the provided key.
+ * @param key
+ * @param options 
+ */
 export function useCacheValue<T, E = Error>(
   key?: string,
   options?: {

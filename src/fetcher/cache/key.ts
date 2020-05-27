@@ -3,6 +3,9 @@ export type CacheKeyType = CacheKeyPrimitiveType | { [key: string]: CacheKeyType
 export type CacheKeyParam = CacheKeyType | (() => CacheKeyType);
 export type CacheKeyFunc = (value: CacheKeyType) => string | number;
 
+/**
+ * @internal
+ */
 export function cacheKey(key: CacheKeyType): string {
   switch (typeof key) {
     case 'boolean':
@@ -67,10 +70,16 @@ const hashCode = (str: string, seed = 0) => {
   // tslint:enable:no-bitwise
 };
 
+/**
+ * @internal
+ */
 export function cacheKeyHash(key: CacheKeyType): string {
   return hashCode(cacheKey(key)).toString(10);
 }
 
+/**
+ * @internal
+ */
 export function computeCacheKey(key: CacheKeyParam, func: CacheKeyFunc): string | undefined {
   let k: CacheKeyType;
   if (typeof key === 'function') {

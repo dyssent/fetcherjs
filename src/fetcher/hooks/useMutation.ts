@@ -55,6 +55,9 @@ export interface MutationCallbacks<T, C = unknown, E = any, ARGS extends unknown
   ) => void;
 }
 
+/**
+ * Mutation request options
+ */
 export interface MutationOptions<T, C = unknown, RT = T, E = any, ARGS extends unknown[] = unknown[]>
   extends Omit<RequestMutationOptions<T, RT, E>, 'type'>,
     MutationCallbacks<T, C, E, ARGS> {
@@ -89,6 +92,9 @@ export interface MutationOptions<T, C = unknown, RT = T, E = any, ARGS extends u
   cacheKeyFunc?: CacheKeyFunc;
 }
 
+/**
+ * @internal
+ */
 export const defaultCacheKeyGenerator = <ARGS extends unknown[] = unknown[]>(...args: ARGS): CacheKeyParam => {
   return `mut-${Date.now()}`;
 };
@@ -109,6 +115,12 @@ export interface MutationInstanceConfig<T, C, E, ARGS extends unknown[]> {
   on: (callbacks: Omit<MutationCallbacks<T, C, E, ARGS>, 'onRequest'>) => MutationInstanceConfig<T, C, E, ARGS>;
 }
 
+/**
+ * useMutation hook to execute mutations, provides a set of helpers for each work with a manager
+ * and cache.
+ * @param request 
+ * @param options 
+ */
 export function useMutation<T, C = unknown, RT = T, E = Error, ARGS extends unknown[] = unknown[]>(
   /**
    * Request function, which will receive static arguments first, then it

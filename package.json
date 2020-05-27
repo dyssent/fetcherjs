@@ -11,6 +11,7 @@
   "types": "dist/types/index.d.ts",
   "files": [
     "dist",
+    "docs",
     "LICENSE",
     "README.md"
   ],
@@ -80,6 +81,7 @@
     "styled-components": "^4.4.1",
     "terser-webpack-plugin": "1.4.1",
     "ts-pnp": "1.1.4",
+    "typedoc": "^0.17.7",
     "typescript": "3.8.3",
     "uglifyjs": "^2.4.11",
     "url-loader": "2.1.0",
@@ -100,7 +102,8 @@
     "test": "node scripts/test.js",
     "test:coverage": "node scripts/test.js --coverage",
     "prepublish": "npm run build:all",
-    "build:all": "rm -rf dist && npm run build:es6 && npm run build:esm && npm run build:cjs && npm run build:types && npm run build:styles",
+    "build:docs": "./node_modules/typedoc/bin/typedoc ./src/fetcher",
+    "build:all": "rm -rf dist && rm -rf docs && npm run build:es6 && npm run build:esm && npm run build:cjs && npm run build:types && npm run build:docs",
     "build:types": "tsc --p tsconfig-types.json --declarationMap --outDir dist/types",
     "build:es6": "tsc --p tsconfig-lib.json --module es6 --target es6 --outDir dist/es6",
     "build:esm": "tsc --p tsconfig-lib.json --module es6 --target es5 --outDir dist/esm",

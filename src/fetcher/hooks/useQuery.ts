@@ -216,6 +216,14 @@ export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown
   batcherTagsMatch?: TagMatch;
 }
 
+/**
+ * useQuery hook, requires a key for caching purposes, request function, options, and arguments
+ * to be provided to the request function.
+ * @param key
+ * @param request 
+ * @param options 
+ * @param args 
+ */
 export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = unknown[]>(
   /**
    * Caching key, must be unique as it will be used for caching. By default it uses deep stringify,

@@ -1,11 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 
+/**
+ * @internal
+ */
 export function isDocVisible() {
   return (
     typeof document === 'undefined' || document.visibilityState === undefined || document.visibilityState === 'visible'
   );
 }
 
+/**
+ * @internal
+ */
 export function useWindowFocus(onChange?: (focused: boolean) => void, observe: boolean = true, threshold: number = -1) {
   const [focused, setFocused] = useState(isDocVisible());
   const startBlurAt = useMemo(() => (focused ? Date.now() : -1), []);
