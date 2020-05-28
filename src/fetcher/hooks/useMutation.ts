@@ -118,8 +118,14 @@ export interface MutationInstanceConfig<T, C, E, ARGS extends unknown[]> {
 /**
  * useMutation hook to execute mutations, provides a set of helpers for each work with a manager
  * and cache.
- * @param request 
- * @param options 
+ * @template T Type expected to be in the request response, after all transformations.
+ * @template C Captured data type, which is then passed around all callbacks.
+ * @template RT Received type by the request. Often is the same as T, but can be different in case a transformation is applied to the RT to convert it to T.
+ * @template E Error type returned by the query. Default value is Error, but can be extended if needed.
+ * @template ARGS Arguments type which are required for the request function.
+ * 
+ * @param request Request function to be called upon mutation.
+ * @param options Request behavior options, optional.
  */
 export function useMutation<T, C = unknown, RT = T, E = Error, ARGS extends unknown[] = unknown[]>(
   /**

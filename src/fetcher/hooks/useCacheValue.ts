@@ -5,6 +5,9 @@ import { ManagerContext } from './context';
 
 /**
  * Observer for a value in a cache using the provided key.
+ * @template T Type stored in the cache.
+ * @template E Error type, which matches the one used in the request function.
+ * 
  * @param key
  * @param options 
  */

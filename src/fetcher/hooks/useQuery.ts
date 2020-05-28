@@ -219,10 +219,16 @@ export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown
 /**
  * useQuery hook, requires a key for caching purposes, request function, options, and arguments
  * to be provided to the request function.
- * @param key
- * @param request 
- * @param options 
- * @param args 
+ * @template T Type expected to be in the request response, after all transformations.
+ * @template RT Received type by the request. Often is the same as T, but can be different in case a transformation is applied to the RT to convert it to T.
+ * @template ST Storage type for the type T. For primitive data it matches T, but if response includes classes, this is the type to be stored in cache during saving.
+ * @template E Error type returned by the query. Default value is Error, but can be extended if needed.
+ * @template ARGS Arguments type which are required for the request function.
+ * 
+ * @param key Unique key for the request, to be used as a cache key.
+ * @param request A promise-based request function, must be stable.
+ * @param options Options for the behavior, optional.
+ * @param args Arguments, matching those that are required for the request function.
  */
 export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = unknown[]>(
   /**
