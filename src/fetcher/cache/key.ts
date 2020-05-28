@@ -35,7 +35,7 @@ export function cacheKey(key: CacheKeyType): string {
           return `${k}=${cacheKey(v)}`;
         })
         .filter(v => typeof v !== 'undefined')
-        .join(',');
+        .join(';');
 
       return `{${objContent}}`;
 

@@ -1,6 +1,6 @@
 import { Tag, TagMatch } from '../tag';
-import { Cache, CacheChangeHandler, CacheChange } from '../cache';
-import { MemoryCacheConfig, MemoryCacheRecord, defaultMemoryCacheConfig, MemoryCacheJSON } from './config';
+import { Cache, CacheChangeHandler, CacheChange, CacheValueSerializer, CacheValueDeserializer } from '../cache';
+import { MemoryCacheConfig, MemoryCacheRecord, defaultMemoryCacheConfig, MemoryCacheJSON, MemoryCacheRecordJSON, MemoryCacheRecordColdValue, MemoryCacheRecordValueJSON } from './config';
 
 /**
  * Memory Cache stats, used for debugging purposes.
@@ -16,7 +16,6 @@ export interface CacheStats {
  * Memory Cache interface.
  */
 export interface MemoryCache extends Cache {
-  save: (cloned?: boolean) => boolean;
   gc: () => { awaiting: number; cleaned: number };
   stats: () => CacheStats;
 }
@@ -32,7 +31,7 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
     ...config
   };
 
-  const cache: Record<string, MemoryCacheRecord<unknown>> = {};
+  const cache: Record<string, MemoryCacheRecord<unknown, unknown>> = {};
   const tags: Record<string, string[]> = {};
   const locks: Record<string, boolean> = {};
   const subs: CacheChangeHandler<unknown>[] = [];
@@ -52,7 +51,13 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
         }
         needsGC = true;
       }
-      cache[k] = rec;
+      cache[k] = {
+        ...rec,
+        value: {
+          t: 'c',
+          v: rec.value
+        }
+      };
       addTags(k, rec.tags);
     }
     if (needsGC) {
@@ -89,7 +94,7 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
       if (!existing) {
         continue;
       }
-      const index = existing.indexOf(t);
+      const index = existing.indexOf(key);
       if (index < 0) {
         if (cfg.debug) {
           throw new Error(`Inconsistent state, tag ${t} doesn't exist for key ${key}`);
@@ -193,45 +198,59 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
     });
   }
 
-  function set<T>(key: string, value: T, ttl?: number, staleTTL?: number, skipNotify?: boolean, ts?: Tag | Tag[]) {
-    const actualTTL = typeof ttl === 'undefined' ? cfg.defaultTTL : ttl;
-    let fullTTL = actualTTL;
-    let actualStaleTTL = typeof staleTTL === 'undefined' ? cfg.defaultStaleTTL : staleTTL;
-    if (typeof actualStaleTTL !== 'undefined') {
-      if (actualStaleTTL < 0) {
-        actualStaleTTL = undefined;
+  function set<T, ST = T>(key: string, value: T, options: {
+    ttl?: number,
+    staleTTL?: number,
+    skipNotify?: boolean,
+    tags?: Tag | Tag[],
+    serializer?: CacheValueSerializer<T, ST>
+  } = {}) {
+    const {
+      ttl = cfg.defaultTTL,
+      staleTTL = cfg.defaultStaleTTL,
+      skipNotify,
+      tags,
+      serializer
+    } = options;
+    let fullTTL = ttl;
+    if (typeof staleTTL !== 'undefined') {
+      if (staleTTL < 0) {
         if (cfg.debug) {
-          throw new Error(`StaleTTL (${actualStaleTTL}) should not be less than zero`);
+          throw new Error(`StaleTTL (${staleTTL}) should not be less than zero`);
         }
       } else {
-        fullTTL += actualStaleTTL;
+        fullTTL += staleTTL;
       }
     }
 
     const now = Date.now();
-    const expiresAt = actualTTL >= 0 ? now + fullTTL : undefined;
-    const staleAt = typeof actualStaleTTL !== 'undefined' && actualStaleTTL >= 0 ? now + actualTTL : undefined;
-    const rec: MemoryCacheRecord<T> = {
-      value,
+    const expiresAt = ttl >= 0 ? now + fullTTL : undefined;
+    const staleAt = typeof staleTTL !== 'undefined' && staleTTL >= 0 ? now + ttl : undefined;
+    const rec: MemoryCacheRecord<T, ST> = {
+      value: {
+        t: 'h',
+        v: value
+      },
       expiresAt,
       staleAt,
       ttl,
       staleTTL,
-      tags: ts ? (Array.isArray(ts) ? ts : [ts]) : undefined
+      tags: tags ? (Array.isArray(tags) ? tags : [tags]) : undefined,
+      serializer
     };
 
-    cache[key] = rec;
-    addTags(key, ts);
+    cache[key] = rec as MemoryCacheRecord<unknown, unknown>;
+    addTags(key, tags);
     if (!skipNotify) {
       notify(key, value, CacheChange.Update);
     }
-    if (actualTTL >= 0) {
+    if (ttl >= 0) {
       scheduleCleanup();
     }
   }
 
-  function getState<T>(key: string): { value: T; stale?: boolean } | undefined {
-    let rec = cache[key] as MemoryCacheRecord<T>;
+  function getState<T, ST = T>(key: string, deserializer?: CacheValueDeserializer<T, ST>): { value: T; stale?: boolean } | undefined {
+    let rec = cache[key] as MemoryCacheRecord<T, ST>;
     if (!rec) {
       return undefined;
     }
@@ -241,20 +260,29 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
       return undefined;
     }
 
+    // Check if a value is not hot, then we need, potentially, do a transformation before
+    // returning it
+    if (rec.value.t === 'c') {
+      rec.value = {
+        t: 'h',
+        v: deserializer ? deserializer(rec.value.v) : rec.value.v as unknown as T
+      }
+    }
+
     if (typeof rec.staleAt !== 'undefined' && now >= rec.staleAt) {
       return {
-        value: rec.value,
+        value: rec.value.v,
         stale: true
       };
     }
 
     return {
-      value: rec.value
+      value: rec.value.v
     };
   }
 
-  function get<T>(key: string): T | undefined {
-    const value = getState<T>(key);
+  function get<T, ST = T>(key: string, deserializer?: CacheValueDeserializer<T, ST>): T | undefined {
+    const value = getState<T, ST>(key, deserializer);
     return value ? value.value : undefined;
   }
 
@@ -385,10 +413,15 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
             // so we just ignore those that were already stored
             continue;
         }
-        let record = cache[e];
-        // TODO Add serialization on per record base here!
+        const rec = cache[e];
+        let record: MemoryCacheRecordValueJSON<unknown, unknown> = {
+          ...rec,
+          // If it is still cold, just retain the value
+          value: rec.value.t === 'c' ? rec.value.v :
+            rec.serializer ? rec.serializer(rec.value.v) : rec.value.v
+        };
         if (cloned) {
-            record = JSON.parse(JSON.stringify(record));
+          record = JSON.parse(JSON.stringify(record));
         }
         data.records[e] = record;
     }

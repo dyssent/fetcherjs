@@ -1,4 +1,4 @@
-import { createMemoryCache, MemoryCacheConfig, TagMatch, Tag } from '../cache';
+import { createMemoryCache, MemoryCacheConfig, TagMatch, Tag, MemoryCacheJSON } from '../cache';
 import { ManagerConfig } from './config';
 import { createManager } from './manager';
 
@@ -27,8 +27,9 @@ export function tagsMatch(requestTags: Tag[] | undefined, tags: Tag[], match: Ta
 
 export function createManagerWithMemoryCache(
   config: Partial<ManagerConfig> = {},
-  cacheConfig?: Partial<MemoryCacheConfig>) {
-  const memoryCache = createMemoryCache(cacheConfig);
+  cacheConfig?: Partial<MemoryCacheConfig>,
+  cacheData?: MemoryCacheJSON) {
+  const memoryCache = createMemoryCache(cacheConfig, cacheData);
   return createManager(config, memoryCache);
 }
 

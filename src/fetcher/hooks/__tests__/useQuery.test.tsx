@@ -10,13 +10,14 @@ import { useQuery, QueryOptions, QueryCallbacks } from '../useQuery';
 import { createManagerWithMemoryCache, Manager } from '../../manager';
 import { cacheKeyHash, MemoryCache } from '../../cache';
 import { renderHook } from '../testUtils';
+import { FetcherConfig } from '../config';
 
 function SomeValue<T>(props: { value: T }) {
   return <span>{JSON.stringify(props.value)}</span>;
 }
 
 function FetchNumber<T>(props: {
-  manager: Manager;
+  manager?: Manager;
   key?: string;
   fetcher: () => Promise<T>;
   options?: QueryOptions<T>;
@@ -310,7 +311,7 @@ describe('useQuery', () => {
       resolve(100);
     });
     const hash = cacheKeyHash('key');
-    manager.updateCache(hash, 50, 100, 100);
+    manager.updateCache(hash, 50, {ttl: 100, staleTTL: 100});
     await wait(150);
     // Should be stale now
     const hook = renderHook(container, () => useQuery('key', request, {manager}));

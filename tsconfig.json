@@ -21,33 +21,5 @@
   },
   "include": [
     "src"
-  ],
-  "typedocOptions": {
-    "inputFiles": [
-			"./src/fetcher"
-		],
-    "mode": "modules",
-    "out": "docs",
-    "theme": "node_modules/typedoc-neo-theme/bin/default",
-    "hideGenerator": true,
-    "stripInternal": true,
-    "excludeExternals": true,
-    "excludeNotExported": true,
-    "excludePrivate": true,
-    "excludeProtected": true,
-    "exclude": [
-      "**/*.test.tsx",
-      "**/*.test.ts",
-      "**/index.ts",
-      "**/testUtils.tsx",
-      "**/testUtils.ts",
-      "**/useCallbackUnstable.ts",
-      "**/useImmediateEffect.ts",
-      "**/useMemoUnstable.ts",
-      "**/useKeyHash.ts",
-      "**/useOnline.ts",
-      "**/useTimer.ts",
-      "**/useWindowFocus.ts"
-    ]
-  }
+  ]
 }

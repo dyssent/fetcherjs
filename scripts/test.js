@@ -29,15 +29,6 @@ function isInGitRepository() {
   }
 }
 
-function isInMercurialRepository() {
-  try {
-    execSync('hg --cwd . root', { stdio: 'ignore' });
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
 // Watch unless on CI or explicitly running all tests
 if (
   !process.env.CI &&

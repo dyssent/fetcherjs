@@ -1,0 +1,57 @@
+{
+    "inputFiles": [
+			"./src/fetcher"
+		],
+    "mode": "modules",
+    "out": "docs",
+    "plugin": "typedoc-neo-theme",
+    "theme": "node_modules/typedoc-neo-theme/bin/default",
+    "hideGenerator": true,
+    "stripInternal": true,
+    "excludeExternals": true,
+    "excludeNotExported": true,
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "exclude": [
+      "**/*.test.tsx",
+      "**/*.test.ts",
+      "**/index.ts",
+      "**/testUtils.tsx",
+      "**/testUtils.ts",
+      "**/useCallbackUnstable.ts",
+      "**/useImmediateEffect.ts",
+      "**/useMemoUnstable.ts",
+      "**/useKeyHash.ts",
+      "**/useOnline.ts",
+      "**/useTimer.ts",
+      "**/useWindowFocus.ts"
+    ],
+    "links": [{
+      "label": "Guides",
+      "url": "https://developers.google.com/actions/extending-the-assistant"
+    }, {
+      "label": "Reference",
+      "url": "https://developers.google.com/actions/reference/nodejsv2/overview"
+    }],
+    "outline": [{
+      "Actions SDK": {
+        "Overview": "actionssdk",
+        "api/v2": "actionssdk_api_v2"
+      },
+      "Dialogflow": {
+        "Overview": "dialogflow",
+        "api/v1": "dialogflow_api_v1",
+        "api/v2": "dialogflow_api_v2"
+      }
+    }],
+    "search": [{
+      "name": "dialogflow.DialogflowConversation.data",
+      "subtitle": "Persistent data"
+    }, {
+      "name": "conversation/response.BasicCard",
+      "subtitle": "Rich response"
+    }, {
+      "name": "conversation/response.BasicCardOptions",
+      "subtitle": "Rich response"
+    }]
+}

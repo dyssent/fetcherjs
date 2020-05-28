@@ -1,4 +1,4 @@
-import { Cache, TagMatch, Tag, CacheChange } from '../cache';
+import { Cache, TagMatch, Tag, CacheChange, CacheValueDeserializer, CacheValueSerializer } from '../cache';
 
 import {
   Request,
@@ -128,14 +128,14 @@ export interface Manager<C extends Cache = Cache> {
 
   /**
    * fromCache pulls a value from the cache via a key, in its raw format. It does not perform
-   * storage transformations
+   * storage transformations.
    */
-  fromCache: <T>(key: string) => T | undefined;
+  fromCache: <T, ST = T>(key: string, deserializer?: CacheValueDeserializer<T, ST>) => T | undefined;
   /**
    * updateCache replaces a value in the cache with a new value, if there are subscribers to this
-   * cache value, it'll trigger notifications
+   * cache value, it'll trigger notifications.
    */
-  updateCache: <T>(key: string, value: T, ttl?: number, staleTTL?: number) => void;
+  updateCache: <T, ST = T>(key: string, value: T, options?: {ttl?: number, staleTTL?: number, serializer?: CacheValueSerializer<T, ST>}) => void;
   /**
    * clearCache removes a value from a cache. If value is not present, it'll return false.
    */
@@ -339,9 +339,9 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
 
       let isPayloadDifferent = true;
       if (equalityCheck) {
-        const cachedValue = cache.get(key);
+        const cachedValue = cache.get(key, storage ? storage.fromCache : undefined);
         if (typeof cachedValue !== 'undefined') {
-          isPayloadDifferent = !equalityCheck(unpackValue(cachedValue, storage), payload);
+          isPayloadDifferent = !equalityCheck(cachedValue, payload);
         }
       }
 
@@ -349,7 +349,13 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
         const ttl = typeof req.options.ttl !== 'undefined' ? req.options.ttl : cfg.request && cfg.request.ttl;
         const staleTTL =
           typeof req.options.staleTTL !== 'undefined' ? req.options.staleTTL : cfg.request && cfg.request.staleTTL;
-        cache.set(key, packValue(payload, storage), ttl, staleTTL, true, req.options.tags);
+        cache.set(key, payload, {
+          ttl,
+          staleTTL,
+          skipNotify: true,
+          tags: req.options.tags,
+          serializer: storage ? storage.toCache : undefined
+        });
       }
     } else {
       rs = {
@@ -575,12 +581,12 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     return cache;
   }
 
-  function fromCache<T>(key: string): T | undefined {
-    return cache.get(key);
+  function fromCache<T, ST = T>(key: string, deserializer?: CacheValueDeserializer<T, ST>): T | undefined {
+    return cache.get(key, deserializer);
   }
 
-  function updateCache<T>(key: string, value: T, ttl?: number, staleTTL?: number): void {
-    cache.set(key, value, ttl, staleTTL);
+  function updateCache<T, ST = T>(key: string, value: T, options?: {ttl?: number, staleTTL?: number, serializer?: CacheValueSerializer<T, ST>}): void {
+    cache.set(key, value, options);
   }
 
   function clearCache(key: string): boolean {
@@ -725,34 +731,12 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     }
   }
 
-  function unpackCacheValue<T, ST>(
+  function retrieveCacheValue<T, ST>(
     key: string,
     storage?: RequestOptionsStorage<T, ST>
   ): { value: T; stale?: boolean } | undefined {
-    const value = cache.getState<ST>(key);
-    if (!value) {
-      return undefined;
-    }
-    return {
-      value: unpackValue<T, ST>(value.value, storage) as T,
-      stale: value.stale
-    };
-  }
-
-  function unpackValue<T, ST>(value: ST, storage?: RequestOptionsStorage<T, ST>): T | undefined {
-    if (!value) {
-      return undefined;
-    }
-    const store = storage || (cfg.request && cfg.request.storage) || requestStorageDirect;
-    return store.fromCache(value) as T;
-  }
-
-  function packValue<T, ST>(value: T, storage?: RequestOptionsStorage<T, ST>): ST {
-    const store = (storage || (cfg.request && cfg.request.storage) || requestStorageDirect) as RequestOptionsStorage<
-      T,
-      ST
-    >;
-    return store.toCache(value);
+    const keyStorage = (storage || cfg.request && cfg.request.storage) as RequestOptionsStorage<T, ST> | undefined;
+    return cache.getState<T, ST>(key, keyStorage ? keyStorage.fromCache : undefined);
   }
 
   function cancel(key: string) {
@@ -761,7 +745,9 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
       return false;
     }
 
-    if (!isPending(key) && !isFetching(key)) {
+    const pending = isPending(key);
+    const fetching = isFetching(key);
+    if (! pending && !fetching) {
       return true;
     }
 
@@ -771,8 +757,12 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
       req.cancel = undefined;
     }
 
-    removePending(key, false);
-    removeFetching(key, false);
+    if (pending) {
+      removePending(key, false);
+    }
+    if (fetching) {
+      removeFetching(key, false);
+    }
     if (req.options.type === 'mutation' || !cache.has(key)) {
       // We don't preserve mutations as they are non-cachable
       // and also those requests which have no data in cache
@@ -791,7 +781,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     // By default treat as a query
     const opts = options || { type: 'query' };
     // Check whether we have the request in our records and cache
-    const cacheValue = opts.type === 'query' ? unpackCacheValue<T, ST>(key, opts.storage) : undefined;
+    const cacheValue = opts.type === 'query' ? retrieveCacheValue<T, ST>(key, opts.storage) : undefined;
 
     let record = (requests[key] as unknown) as Request<T, RT, ST, E, ARGS> | undefined;
 
@@ -905,7 +895,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     }
 
     const cacheValue =
-      record.options.type === 'query' ? unpackCacheValue<T, ST>(key, record.options.storage) : undefined;
+      record.options.type === 'query' ? retrieveCacheValue<T, ST>(key, record.options.storage) : undefined;
 
     const reqPending = isPending(key);
     const reqFetching = isFetching(key);

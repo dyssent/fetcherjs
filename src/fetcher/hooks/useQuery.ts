@@ -375,7 +375,7 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
       if (!cacheKey) {
         return;
       }
-      manager.updateCache(cacheKey, value, ttl, staleTTL);
+      manager.updateCache(cacheKey, value, {ttl, staleTTL});
     },
     [cacheKey]
   );

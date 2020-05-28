@@ -11,17 +11,17 @@ export interface FetcherConfigProps {
    * to create an instanceof of a MemoryCache. If a cache from the context
    * is meant to be used - keep this value undefined.
    */
-  cache?: MemoryCacheConfig;
+  cache?: Partial<MemoryCacheConfig>;
   /**
    * Manager configuration, if provided will be used
    * to create an instanceof of a Manager. If a manager from the context
    * is meant  to be used - keep this value undefined.
    */
-  manager?: ManagerConfig;
+  manager?: Partial<ManagerConfig>;
   /**
    * Default query options
    */
-  query?: QueryOptions<unknown>;
+  query?: Partial<QueryOptions<unknown>>;
 }
 
 /**
