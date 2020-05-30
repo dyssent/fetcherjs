@@ -10,7 +10,6 @@ import { useQuery, QueryOptions, QueryCallbacks } from '../useQuery';
 import { createManagerWithMemoryCache, Manager } from '../../manager';
 import { cacheKeyHash, MemoryCache } from '../../cache';
 import { renderHook } from '../testUtils';
-import { FetcherConfig } from '../config';
 
 function SomeValue<T>(props: { value: T }) {
   return <span>{JSON.stringify(props.value)}</span>;
@@ -37,19 +36,6 @@ function FetchNumber<T>(props: {
       <span>Value: {typeof data !== 'undefined' ? <SomeValue value={data} /> : 'undefined'}&nbsp;</span>
     </>
   );
-}
-
-function UnstableQueryRequestComponent(props: {
-  manager: Manager
-}) {
-  const { manager } = props;
-  useQuery(
-    'key',
-    (params: number[]) => new Promise<String>(resolve => resolve(params.map(p => p.toString()).join('.'))),
-    {manager},
-    [1,2]
-  )
-  return null;
 }
 
 function UnstableQueryArgsComponent(props: {
@@ -723,19 +709,34 @@ describe('useQuery', () => {
     expect(hook.draws.current).toBe(3);
   });
 
-  it('should report unstable request function', async () => {
-    act(() => {
-      render(
-        <ErrorBoundary>
-          <UnstableQueryRequestComponent manager={manager} />
-        </ErrorBoundary>,
-        container
-      );
-    });
-    await wait(5);
-    expect(container.textContent).toContain('Error');
-    expect(container.textContent).toContain('Unstable request function detected');
-  });
+  // Current request function is okay to be unstable, so we no
+  // longer tets for this.
+  // it('should report unstable request function', async () => {
+  //   function UnstableQueryRequestComponent(props: {
+  //     manager: Manager
+  //   }) {
+  //     const { manager } = props;
+  //     useQuery(
+  //       'key',
+  //       (params: number[]) => new Promise<String>(resolve => resolve(params.map(p => p.toString()).join('.'))),
+  //       {manager},
+  //       [1,2]
+  //     )
+  //     return null;
+  //   }
+  //
+  //   act(() => {
+  //     render(
+  //       <ErrorBoundary>
+  //         <UnstableQueryRequestComponent manager={manager} />
+  //       </ErrorBoundary>,
+  //       container
+  //     );
+  //   });
+  //   await wait(5);
+  //   expect(container.textContent).toContain('Error');
+  //   expect(container.textContent).toContain('Unstable request function detected');
+  // });
 
   it('should report unstable arguments', async () => {
     act(() => {

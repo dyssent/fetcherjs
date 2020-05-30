@@ -26,8 +26,14 @@ export interface QueryRequestState<T, E = Error> extends RequestState<T, E> {
    * stored at the request key. This doest not execute
    * any remote requests, and only performs update
    * in the local cache.
+   * 
+   * If cancel is true, then it will also cancel all requests which are currently pending.
+   * This might be helpful if there are other views which might have request a refetch, etc.
+   * 
+   * ttl and staleTTL can be updated along with the mutation, if omitted - default ones
+   * provided in options will be used.
    */
-  mutate: (value: T) => void;
+  mutate: (value: T, cancel?: boolean, ttl?: number | undefined, staleTTL?: number | undefined) => void;
   /**
    * Cancel an ongoing request. This should normally be used
    * only when in combination with a manual request, otherwise
@@ -275,6 +281,9 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
     return opt.tags;
   }, [...(opt.tags || [])]);
 
+  const requestRef = useRef(request);
+  requestRef.current = request;
+
   // key might be an array, but we compute a hash of it, so we don't want to provide it
   // as a dependency here, just a hash of it using the cacheKey
   // const r = useCallback(() => request(key, ...args), [request, cacheKey, ...args]);
@@ -286,7 +295,7 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
 
       return manager.request<T, RT, ST, E, ARGS>(
         cacheKey,
-        request,
+        requestRef.current,
         {
           ttl: opt.ttl,
           staleTTL: opt.staleTTL,
@@ -306,7 +315,6 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
       );
     },
     [
-      request,
       ...args,
       cacheKey,
       opt.ttl,
@@ -377,13 +385,16 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
   );
 
   const mutate = useCallback(
-    (value: T, ttl?: number | undefined, staleTTL?: number | undefined) => {
+    (value: T, cancel?: boolean, ttl?: number | undefined, staleTTL?: number | undefined) => {
       if (!cacheKey) {
         return;
       }
-      manager.updateCache(cacheKey, value, {ttl, staleTTL});
+      if (cancel) {
+        manager.cancel(cacheKey);
+      }
+      manager.updateCache(cacheKey, value, {ttl: ttl || opt.ttl, staleTTL: staleTTL || opt.staleTTL});
     },
-    [cacheKey]
+    [manager, cacheKey, opt.ttl, opt.staleTTL]
   );
 
   const [state, setState] = useState<RequestState<T, E>>(() => {

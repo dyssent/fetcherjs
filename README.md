@@ -48,10 +48,7 @@ Second parameter is a fetcher function, the only requirement for it is to return
 to happen under the hood is not imporant for the useQuery hook itself. As a placeholder, you can provide direct
 response ```() => new Promise(resolve => resolve(['movie'])``` and it will accepted. Important to notice that the
 request function must not be a closure, as it will change on each render. Use a stable function, and if needed
-wrap it in a useCallback hook. The reason for it being stable is simple - if a new request function is provided,
-useQuery will assume something must have changed and it has to refetch it. This might get into an infinite re-fetching,
-which is not good. useQuery has built in detection for this, and it will throw an error if it detects that unstable
-request function is supplied.
+wrap it in a useCallback hook, however it will work just fine with a regular one as well.
 
 Third parameter is optional and is an object representing request options. This is where priority, delays, TTLs, and
 other variables can be tweaked.
