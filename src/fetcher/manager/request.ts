@@ -60,7 +60,8 @@ export interface RequestOptionsStorage<T, ST = T> {
 export type RetryDecayFunc = (attempts: number) => number;
 export const defaultRetryDecay: RetryDecayFunc = (attempts: number) => Math.min(2 ** attempts, 30) * 1000;
 
-export type RequestTransformFunc<RT, T> = (content: RT) => T;
+export type RequestTransformFunc<RT, T> = (content: RT) => T | Promise<T>;
+export type RequestValidateFunc<RT, E> = (payload: RT) => E | undefined | Promise<E | undefined>;
 
 export interface RequestOptionsBase<T, RT = T, E = Error> {
   /**
@@ -92,7 +93,7 @@ export interface RequestOptionsBase<T, RT = T, E = Error> {
    * whether the payload is success or failure. Some APIs do not return http codes
    * with errors and may have errors listed as a part of the typical payload.
    */
-  validate?: (payload: RT) => E | undefined;
+  validate?: RequestValidateFunc<RT, E>;
   /**
    * delay defines the amount of time to wait before calling a request,
    * this gets ignore though if value is already in cache and there is no

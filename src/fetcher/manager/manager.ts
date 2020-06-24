@@ -320,7 +320,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     };
   }
 
-  function finishRequestWithSuccess(key: string, req: Request<unknown>, result: unknown, extracted?: boolean) {
+  async function finishRequestWithSuccess(key: string, req: Request<unknown>, result: unknown, extracted?: boolean) {
     let rs: RequestState<unknown> | undefined;
     removeFetching(key, false);
     removePending(key, false);
@@ -328,7 +328,12 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     const extract =
       typeof req.options.transform === 'function' ? req.options.transform : cfg.request && cfg.request.transform;
 
-    const payload = extract && !extracted ? extract(result) : result;
+    let payload: unknown;
+    if (extract && !extracted) {
+       payload = await Promise.resolve(extract(result))
+     } else {
+       payload = result;
+     }
 
     if (req.options.type === 'query') {
       const equalityCheck =
@@ -368,7 +373,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     notifySubs(key, { fetching: false, pending: false, success: true }, rs);
   }
 
-  function finishRequestWithError(key: string, req: Request<unknown>, error: any) {
+  async function finishRequestWithError(key: string, req: Request<unknown>, error: any) {
     let rs: RequestState<unknown> | undefined;
     req.attempts++;
     req.error = error;
@@ -460,17 +465,17 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
         const rd = results.data[i];
 
         if (typeof rd.data !== 'undefined') {
-          finishRequestWithSuccess(r.key, r.req, rd.data, extracted);
+          await finishRequestWithSuccess(r.key, r.req, rd.data, extracted);
         } else {
           // Must be an error then
           if (typeof rd.error === 'undefined') {
             throw new Error('Neither error nor data was provided for a batch result entry');
           }
-          finishRequestWithError(r.key, r.req, rd.error);
+          await finishRequestWithError(r.key, r.req, rd.error);
         }
       }
     } catch (err) {
-      reqs.forEach(r => finishRequestWithError(r.key, r.req, err));
+      await Promise.all(reqs.map(r => finishRequestWithError(r.key, r.req, err)));
     }
     batchAdjuster -= keys.length - 1;
     pushQueue();
@@ -504,17 +509,20 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
 
       const validate =
         typeof req.options.validate === 'function' ? req.options.validate : cfg.request && cfg.request.validate;
-      const maybeError = validate && validate(result);
+      let maybeError: unknown;
+      if (validate) {
+        maybeError = await Promise.resolve(validate(result));
+      }
       if (typeof maybeError !== 'undefined') {
-        finishRequestWithError(key, req, maybeError);
+        await finishRequestWithError(key, req, maybeError);
       } else {
-        finishRequestWithSuccess(key, req, result);
+        await finishRequestWithSuccess(key, req, result);
       }
     } catch (err) {
       if (cancelled) {
         return;
       }
-      finishRequestWithError(key, req, err);
+      await finishRequestWithError(key, req, err);
     }
 
     pushQueue();

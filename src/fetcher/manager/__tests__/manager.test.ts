@@ -399,6 +399,56 @@ describe('query-manager', () => {
     expect(cacheVal).toBe(manager.fromCache(key1));
   });
 
+  it('can validate payload', async () => {
+    const manager = createManagerWithMemoryCache({debug: true});
+    let retVal = 4;
+    const request = () =>
+      new Promise<number>(resolve => {
+        resolve(retVal);
+        retVal += 1;
+      });
+    const validate = (payload: number ) => {
+      return payload >= 5 ? undefined : new Error('Value must be less than 5');
+    };
+
+    manager.request(key1, request, { validate, type: 'query' });
+    await wait(5);
+    expect(manager.state(key1)?.error).toBeDefined();
+    expect(manager.state(key1)?.data).toBeUndefined();
+    manager.request(key1, request, { validate, type: 'query', forced: true });
+    await wait(5);
+    expect(manager.state(key1)?.error).toBeUndefined();
+    expect(manager.state(key1)?.data).toBeDefined();
+    expect(manager.state(key1)?.data).toBe(5);
+  });
+
+  it('can validate payload asynchronously', async () => {
+    const manager = createManagerWithMemoryCache({debug: true});
+    let retVal = 4;
+    const request = () =>
+      new Promise<number>(resolve => {
+        resolve(retVal);
+        retVal += 1;
+      });
+    const validate = (payload: number) => {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve(payload >= 5 ? undefined : new Error('Value must be less than 5'));
+        }, 1);
+      });
+    };
+
+    manager.request(key1, request, { validate, type: 'query' });
+    await wait(5);
+    expect(manager.state(key1)?.error).toBeDefined();
+    expect(manager.state(key1)?.data).toBeUndefined();
+    manager.request(key1, request, { validate, type: 'query', forced: true });
+    await wait(5);
+    expect(manager.state(key1)?.error).toBeUndefined();
+    expect(manager.state(key1)?.data).toBeDefined();
+    expect(manager.state(key1)?.data).toBe(5);
+  });
+
   it('can transform payload', async () => {
     const manager = createManagerWithMemoryCache({debug: true});
     const request = () =>
@@ -409,6 +459,29 @@ describe('query-manager', () => {
       });
 
     manager.request(key1, request, { transform: (payload: { value: number }) => payload.value, type: 'query' });
+    await wait(5);
+    expect(manager.fromCache(key1)).toBe(5);
+    const state = manager.state(key1);
+    expect(state?.data).toBe(5);
+  });
+
+  it('can transform payload asyncronously', async () => {
+    const manager = createManagerWithMemoryCache({debug: true});
+    const request = () =>
+      new Promise<{ value: number }>(resolve => {
+        resolve({
+          value: 5
+        });
+      });
+    const transform = (payload: {value: number}) => {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve(payload.value);
+        }, 1);
+      });
+    };
+
+    manager.request(key1, request, { transform, type: 'query' });
     await wait(5);
     expect(manager.fromCache(key1)).toBe(5);
     const state = manager.state(key1);
