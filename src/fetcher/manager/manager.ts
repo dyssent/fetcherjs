@@ -798,7 +798,8 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
       (opts.type === 'query' && (opts.forced || cacheValue?.stale)) ||
       !record ||
       record.cancelled ||
-      record.expired
+      record.expired ||
+      (!record.nextAttempt && typeof cacheValue == 'undefined')
     ) {
       if (record) {
         // If there is an ongoing connection and we are forced to restart
