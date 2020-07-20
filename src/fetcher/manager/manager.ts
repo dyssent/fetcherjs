@@ -414,6 +414,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
         };
         removeRequest(key);
       }
+      req.nextAttempt = undefined;
       notifySubs(key, { fetching: false, pending: false, error: true }, rs);
     } else {
       req.nextAttempt = retryAt;

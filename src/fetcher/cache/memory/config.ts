@@ -52,6 +52,6 @@ const fiveMinutes = 60 * 5 * 1000;
  */
 export const defaultMemoryCacheConfig: MemoryCacheConfig = {
   defaultTTL: fiveMinutes,
-  defaultStaleTTL: fiveMinutes,
+  defaultStaleTTL: undefined,
   defaultGCInterval: 60 * 5 * 1000
 };
