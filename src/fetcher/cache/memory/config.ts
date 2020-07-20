@@ -46,12 +46,12 @@ export interface MemoryCacheConfig extends CacheConfig<MemoryCacheJSON> {
 }
 
 const fiveMinutes = 60 * 5 * 1000;
-
+const fiveSeconds = 5 * 1000;
 /**
  * Default memory cache configuration
  */
 export const defaultMemoryCacheConfig: MemoryCacheConfig = {
-  defaultTTL: fiveMinutes,
-  defaultStaleTTL: undefined,
+  defaultTTL: fiveSeconds,
+  defaultStaleTTL: fiveMinutes,
   defaultGCInterval: 60 * 5 * 1000
 };
