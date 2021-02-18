@@ -1,11 +1,11 @@
 import React, { useContext } from 'react';
-import { MemoryCacheConfig, createMemoryCache } from '../cache';
-import { ManagerConfig, createManager } from '../manager';
+import { MemoryCacheConfig, createMemoryCache, MemoryCacheJSON, MemoryCache, Cache } from '../cache';
+import { ManagerConfig, createManager, Manager } from '../manager';
 import { ManagerContext, CacheContext } from './context';
 import { useMemoUnstable } from './useMemoUnstable';
 import { QueryOptions } from './useQuery';
 
-export interface FetcherConfigProps {
+export interface FetcherConfigProps<C extends Cache = Cache> {
   /**
    * Cache configuration, if provided it will be used
    * to create an instanceof of a MemoryCache. If a cache from the context
@@ -13,11 +13,24 @@ export interface FetcherConfigProps {
    */
   cache?: Partial<MemoryCacheConfig>;
   /**
+   * Provide the data here to rehydrate the cache from pre-saved data
+   */
+  cacheInitialData?: MemoryCacheJSON;
+  /**
+   * An existing cache instance to be used
+   */
+  cacheInstance?: C;
+  /**
    * Manager configuration, if provided will be used
    * to create an instanceof of a Manager. If a manager from the context
    * is meant  to be used - keep this value undefined.
    */
   manager?: Partial<ManagerConfig>;
+  /**
+   * Provide an existing instance of a manager to be used instead
+   * of a dynamically created on.
+   */
+  managerInstance?: Manager<C>;
   /**
    * Default query options
    */
@@ -30,7 +43,10 @@ export interface FetcherConfigProps {
 export const FetcherConfig = React.memo((props: React.PropsWithChildren<FetcherConfigProps>) => {
   const {
     cache: cacheConfig,
+    cacheInitialData,
+    cacheInstance,
     manager: managerConfig,
+    managerInstance,
     children
   } = props;
 
@@ -38,18 +54,30 @@ export const FetcherConfig = React.memo((props: React.PropsWithChildren<FetcherC
   const defaultManager = useContext(ManagerContext);
 
   const cache = useMemoUnstable(() => {
-    if (!cacheConfig) {
-      return defaultCache;
+    if (cacheInstance) {
+      if (cacheConfig) {
+        console.warn(`Fetcher Cache instance is provided along with a manager config, only instance will be used.`);
+      }
+      return cacheInstance;
     }
-    return createMemoryCache(cacheConfig);
-  }, [cacheConfig, defaultCache]);
+    if (cacheConfig) {
+      return createMemoryCache(cacheConfig, cacheInitialData);
+    }
+    return defaultCache;
+  }, [cacheConfig, defaultCache, cacheInstance, cacheInitialData]);
 
   const manager = useMemoUnstable(() => {
-    if (!managerConfig) {
-      return defaultManager;
+    if (managerInstance) {
+      if (managerConfig) {
+        console.warn(`Fetcher Manager instance is provided along with a manager config, only instance will be used.`);
+      }
+      return managerInstance;
     }
-    return createManager(managerConfig, cache);
-  }, [managerConfig, defaultManager]);
+    if (managerConfig) {
+      return createManager(managerConfig, cache); 
+    }
+    return defaultManager;
+  }, [managerConfig, defaultManager, managerInstance]);
 
   return (
     <ManagerContext.Provider

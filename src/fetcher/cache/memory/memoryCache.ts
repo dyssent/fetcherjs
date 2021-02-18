@@ -1,6 +1,6 @@
 import { Tag, TagMatch } from '../tag';
 import { Cache, CacheChangeHandler, CacheChange, CacheValueSerializer, CacheValueDeserializer } from '../cache';
-import { MemoryCacheConfig, MemoryCacheRecord, defaultMemoryCacheConfig, MemoryCacheJSON, MemoryCacheRecordJSON, MemoryCacheRecordColdValue, MemoryCacheRecordValueJSON } from './config';
+import { MemoryCacheConfig, MemoryCacheRecord, defaultMemoryCacheConfig, MemoryCacheJSON, MemoryCacheRecordValueJSON } from './config';
 
 /**
  * Memory Cache stats, used for debugging purposes.

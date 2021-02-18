@@ -159,6 +159,13 @@ export interface Manager<C extends Cache = Cache> {
    * as ongoing requests won't be affected by a change immediately.
    */
   updateConfig: (config: Partial<ManagerConfig>) => void;
+  /**
+   * Creates a promise which resolves when all pending requests are complete. It is important to note here
+   * that requests may have retry policy, which would result in almost infinite wait, so to avoid that
+   * a timeout can be provided which will interrupt the promise and reject it earlier.
+   * Timeout is in milliseconds
+   */
+  waitPending: (timeout: number) => Promise<void>;
 }
 
 export type BatcherResultRecord<T, E> =
@@ -999,6 +1006,28 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     subsBroad.splice(index, 1);
   }
 
+  function waitPending(timeout: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (pending.length === 0) {
+        resolve();
+        return;
+      }
+
+      let stopListening: () => void;
+
+      const timeoutHandler = setTimeout(() => {
+        stopListening();
+        reject(`Timed out after ${timeout}`);
+      }, timeout)
+      stopListening = subBroadcast((k, s, r) => {
+        if (pending.length === 0) {
+          clearTimeout(timeoutHandler);
+          resolve();
+        }
+      });
+    });
+  }
+
   return {
     request,
     refetchByKey,
@@ -1017,6 +1046,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     clearCacheByTags,
     getCache,
     stats,
+    waitPending,
     updateConfig
   };
 }

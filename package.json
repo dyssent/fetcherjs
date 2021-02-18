@@ -1,6 +1,6 @@
 {
   "name": "@dyssent/fetcherjs",
-  "version": "1.0.6",
+  "version": "1.2.0",
   "homepage": "https://www.fetcherjs.com",
   "private": false,
   "publishConfig": {

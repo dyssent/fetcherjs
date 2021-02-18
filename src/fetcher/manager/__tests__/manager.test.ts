@@ -148,6 +148,24 @@ describe('query-manager', () => {
     expect(error).not.toBe(undefined);
   });
 
+  it('can refetch upon next request when encountered an error previously', async () => {
+    const manager = createManagerWithMemoryCache({debug: true});
+    const request = () =>
+      new Promise(() => {
+        throw new Error('The thing blew up');
+      });
+
+    let error: Error | undefined;
+    const resultSub = (state: { data?: number; pending?: boolean; error?: any }) => {
+      error = state.error;
+    };
+
+    manager.sub(key1, resultSub);
+    manager.request(key1, request);
+    await wait(50);
+    expect(error).not.toBe(undefined);
+  });
+
   it('can refetch', async () => {
     const manager = createManagerWithMemoryCache({debug: true});
     let offset = 10;
@@ -567,5 +585,34 @@ describe('query-manager', () => {
     expect(manager.state('1')?.data).toBe(1001);
     expect(manager.state('2')?.data).toBe(1002);
     expect(manager.state('3')?.data).toBe(1003);
+  });
+
+  it('can wait for all requests to complete', async () => {
+    const manager = createManagerWithMemoryCache({debug: true});
+    let called = false;
+    const request = () =>
+      new Promise(resolve => {
+        called = true;
+        resolve(10);
+      });
+
+    manager.request(key1, request, { delay: 100, type: 'query' });
+    const now = Date.now();
+    await manager.waitPending(1000);
+    const diff = Date.now() - now;
+    expect(diff).toBeLessThanOrEqual(150);
+  });
+
+  it('can fail waiting for all requests to complete on timeout', async () => {
+    const manager = createManagerWithMemoryCache({debug: true});
+    let called = false;
+    const request = () =>
+      new Promise(resolve => {
+        called = true;
+        resolve(10);
+      });
+
+    manager.request(key1, request, { delay: 100, type: 'query' });
+    await expect(manager.waitPending(50)).rejects.toBeDefined();
   });
 });

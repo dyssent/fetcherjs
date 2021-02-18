@@ -46,7 +46,7 @@ export interface MemoryCacheConfig extends CacheConfig<MemoryCacheJSON> {
 }
 
 const fiveMinutes = 60 * 5 * 1000;
-const fiveSeconds = 5 * 1000;
+const fiveSeconds = 0;
 /**
  * Default memory cache configuration
  */
