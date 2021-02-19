@@ -8,7 +8,7 @@ import {
   RequestOptionsStorage
 } from './request';
 import { ManagerSubCallback, ManagerBroadcast, ManagerConfig, defaultManagerConfig, SubReason } from './config';
-import { tagsMatch } from './utility';
+import { isSSR, tagsMatch } from './utility';
 
 /**
  * ManagerStats has basic stats on the current state of the manager.
@@ -801,12 +801,13 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
 
     let record = (requests[key] as unknown) as Request<T, RT, ST, E, ARGS> | undefined;
 
+    const pending = isPending(key);
     if (
       (opts.type === 'query' && (opts.forced || cacheValue?.stale)) ||
       !record ||
       record.cancelled ||
       record.expired ||
-      (!record.nextAttempt && typeof cacheValue == 'undefined')
+      (!record.nextAttempt && typeof cacheValue == 'undefined' && !pending)
     ) {
       if (record) {
         // If there is an ongoing connection and we are forced to restart
@@ -821,6 +822,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
       // perform an actual query. Unless it's already stale.
       const wasRehydrated = !record && cacheValue;
       const initiateRequest = !wasRehydrated || (opts.type === 'query' && opts.forced) || cacheValue?.stale ? true : false;
+      console.trace(`${initiateRequest}: ${!wasRehydrated}(${!record} ${cacheValue}) ${(opts.type === 'query' && opts.forced)} ${cacheValue?.stale}`);
 
       record = {
         r,
@@ -828,7 +830,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
         options: opts,
         attempts: 0,
         error: undefined,
-        nextAttempt: typeof opts.delay !== 'undefined' ? Date.now() + opts.delay : undefined
+        nextAttempt: !isSSR && typeof opts.delay !== 'undefined' ? Date.now() + opts.delay : undefined
       };
       addRequest(key, record, initiateRequest);
     }
@@ -836,7 +838,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
     return {
       data: cacheValue && cacheValue.value,
       stale: cacheValue && cacheValue.stale,
-      pending: isPending(key),
+      pending: pending,
       fetching: isFetching(key),
       error: record.error
     };

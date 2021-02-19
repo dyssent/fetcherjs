@@ -16,7 +16,7 @@ describe('query-manager', () => {
   const key3 = 'key3';
 
   it('can perform request', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     const request = () =>
       new Promise(resolve => {
         resolve(10);
@@ -49,7 +49,7 @@ describe('query-manager', () => {
   });
 
   it('ignores request if there is fresh data', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let calls = 0;
     const request = () =>
       new Promise(resolve => {
@@ -72,7 +72,7 @@ describe('query-manager', () => {
   });
 
   it('performs request if there is stale data', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let calls = 0;
     const request = () =>
       new Promise(resolve => {
@@ -98,7 +98,7 @@ describe('query-manager', () => {
   });
 
   it('can perform pub/sub', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     const request = (v: number) =>
       new Promise(resolve => {
         resolve(v);
@@ -131,7 +131,7 @@ describe('query-manager', () => {
   });
 
   it('can report errors', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     const request = () =>
       new Promise(() => {
         throw new Error('The thing blew up');
@@ -149,7 +149,7 @@ describe('query-manager', () => {
   });
 
   it('can refetch upon next request when encountered an error previously', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     const request = () =>
       new Promise(() => {
         throw new Error('The thing blew up');
@@ -167,7 +167,7 @@ describe('query-manager', () => {
   });
 
   it('can refetch', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let offset = 10;
     const request = () =>
       new Promise(resolve => {
@@ -189,7 +189,7 @@ describe('query-manager', () => {
   });
 
   it('can cancel', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let called = 0;
     const request = () =>
       new Promise(async resolve => {
@@ -231,7 +231,7 @@ describe('query-manager', () => {
   });
 
   it('can provide stats', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     const request = () =>
       new Promise(resolve => {
         resolve(10);
@@ -261,7 +261,8 @@ describe('query-manager', () => {
       debug: true,
       request: { retries: 1, retryDecay: () => 50, ttl: 200, staleTTL: 100, type: 'query' }
     }, {
-      defaultGCInterval: 100
+      defaultGCInterval: 100,
+      defaultTTL: 5 * 60 * 1000
     });
     const onUpdate = (_: any, reason: SubReason) => {
       notifs.push(reason);
@@ -305,6 +306,8 @@ describe('query-manager', () => {
     const manager = createManagerWithMemoryCache({
       debug: true,
       request: { retries: 3, retryDecay: () => 50, type: 'query' }
+    }, {
+      defaultTTL: 5 * 60 * 1000
     });
     let attempts = 0;
 
@@ -328,7 +331,7 @@ describe('query-manager', () => {
   it('can notify when updated or cleared from cache', async () => {
     let updated = false;
     let expired = false;
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     const onUpdate = (_: any, reason: SubReason) => {
       if (reason.manual) {
         updated = true;
@@ -368,7 +371,8 @@ describe('query-manager', () => {
       storage: {
         save: value => data = value,
         matchers: []
-      }
+      },
+      defaultTTL: 5 * 60 * 1000
     });
     const request = () =>
       new Promise(resolve => {
@@ -386,7 +390,7 @@ describe('query-manager', () => {
     expect(data?.records[key1].value).toBe('{"value":5}');
 
     // Now rehydrate and check that it was able to retrieve from cache
-    const manager2 = createManagerWithMemoryCache({debug: true}, undefined, data);
+    const manager2 = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000}, data);
     manager2.request(key1, request, { storage: requestStorageJSON, type: 'query' });
     const state = manager2.state<{ value: number }>(key1);
     if (!state) {
@@ -398,7 +402,7 @@ describe('query-manager', () => {
   });
 
   it('can ignore same payload', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     const request = () =>
       new Promise(resolve => {
         resolve({ value: 100 });
@@ -418,7 +422,7 @@ describe('query-manager', () => {
   });
 
   it('can validate payload', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let retVal = 4;
     const request = () =>
       new Promise<number>(resolve => {
@@ -441,7 +445,7 @@ describe('query-manager', () => {
   });
 
   it('can validate payload asynchronously', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let retVal = 4;
     const request = () =>
       new Promise<number>(resolve => {
@@ -468,7 +472,7 @@ describe('query-manager', () => {
   });
 
   it('can transform payload', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     const request = () =>
       new Promise<{ value: number }>(resolve => {
         resolve({
@@ -484,7 +488,7 @@ describe('query-manager', () => {
   });
 
   it('can transform payload asyncronously', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     const request = () =>
       new Promise<{ value: number }>(resolve => {
         resolve({
@@ -510,6 +514,8 @@ describe('query-manager', () => {
     const manager = createManagerWithMemoryCache({
       debug: true,
       maxParallelRequests: 0
+    }, {
+      defaultTTL: 5 * 60 * 1000
     });
 
     const results: number[] = [];
@@ -541,7 +547,7 @@ describe('query-manager', () => {
   });
 
   it('can delay request', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let called = false;
     const request = () =>
       new Promise(resolve => {
@@ -560,7 +566,7 @@ describe('query-manager', () => {
   });
 
   it('can batch requests', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let called = 0;
     const api = (id: number | number[]) =>
       new Promise<number | number[]>(async resolve => {
@@ -588,7 +594,7 @@ describe('query-manager', () => {
   });
 
   it('can wait for all requests to complete', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let called = false;
     const request = () =>
       new Promise(resolve => {
@@ -604,7 +610,7 @@ describe('query-manager', () => {
   });
 
   it('can fail waiting for all requests to complete on timeout', async () => {
-    const manager = createManagerWithMemoryCache({debug: true});
+    const manager = createManagerWithMemoryCache({debug: true}, {defaultTTL: 5 * 60 * 1000});
     let called = false;
     const request = () =>
       new Promise(resolve => {
