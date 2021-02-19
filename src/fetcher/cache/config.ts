@@ -14,7 +14,7 @@ export interface CacheStorageConfig<ColdCacheJSON> {
    * Matchers to be applied to records before saving. If none are provided,
    * all records will be preserved.
    */
-  matchers: {
+  matchers?: {
     tags: Tag[];
     match: TagMatch;
   }[];

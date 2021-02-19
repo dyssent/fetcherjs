@@ -822,8 +822,7 @@ export function createManager<C extends Cache>(config: Partial<ManagerConfig>, c
       // perform an actual query. Unless it's already stale.
       const wasRehydrated = !record && cacheValue;
       const initiateRequest = !wasRehydrated || (opts.type === 'query' && opts.forced) || cacheValue?.stale ? true : false;
-      console.trace(`${initiateRequest}: ${!wasRehydrated}(${!record} ${cacheValue}) ${(opts.type === 'query' && opts.forced)} ${cacheValue?.stale}`);
-
+      
       record = {
         r,
         args: args || [],

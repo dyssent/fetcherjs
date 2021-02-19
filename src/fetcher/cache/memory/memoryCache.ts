@@ -396,7 +396,7 @@ export function createMemoryCache(config: Partial<MemoryCacheConfig> = {}, rehyd
     }
 
     let entries: string[] = [];
-    if (cfg.storage.matchers.length === 0) {
+    if (!cfg.storage.matchers || cfg.storage.matchers.length === 0) {
       entries = Object.keys(cache);
     } else {
         for (const tm of cfg.storage.matchers) {
