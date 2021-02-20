@@ -88,7 +88,7 @@ describe('useQuery', () => {
     jest.useFakeTimers();
     container = document.createElement('div');
     document.body.appendChild(container);
-    manager = createManagerWithMemoryCache();
+    manager = createManagerWithMemoryCache(undefined, {defaultTTL: 5 * 60 * 1000});
     // Hiject updates so we can run them in the act scope
     manager.updateConfig({hooks: {
       onNotifySub: (sub, state, reason) => {
@@ -577,7 +577,7 @@ describe('useQuery', () => {
     expect(hook.result.current.data).toBeUndefined();
     expect(calls).toBe(0);
     act(() => {
-      hook.updateArgs('key', request, {manager});
+      hook.updateArgs('key' as any, request, {manager});
     });
     await wait(1);
     expect(hook.result.current.data).toBe(1);
@@ -598,7 +598,7 @@ describe('useQuery', () => {
     expect(hook.result.current.data).toBeUndefined();
     expect(threw).toBe(true);
     act(() => {
-      hook.updateArgs('key', request, {manager});
+      hook.updateArgs('key' as any, request, {manager});
     });
     await wait(1);
     expect(hook.result.current.data).toBe(1);

@@ -1,5 +1,6 @@
-export type CacheKeyPrimitiveType = string | number | boolean | null | undefined;
-export type CacheKeyType = CacheKeyPrimitiveType | { [key: string]: CacheKeyType } | CacheKeyType[];
+export type CacheKeyPrimitiveMaybeFalsy = boolean | null | undefined;
+export type CacheKeyPrimitiveType = string | number;
+export type CacheKeyType = CacheKeyPrimitiveType | CacheKeyPrimitiveMaybeFalsy | { [key: string]: CacheKeyType } | CacheKeyType[];
 export type CacheKeyParam = CacheKeyType | (() => CacheKeyType);
 export type CacheKeyFunc = (value: CacheKeyType) => string | number;
 

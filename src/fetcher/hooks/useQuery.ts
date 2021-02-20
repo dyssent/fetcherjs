@@ -12,7 +12,7 @@ import { useImmediateEffect } from './useImmediateEffect';
 import { useCallbackUnstable } from './useCallbackUnstable';
 
 export type QueryArgs<K, ARGS extends unknown[]> = K extends false | undefined | null ? Partial<ARGS> : ARGS;
-export interface QueryRequestState<T, E = Error> extends RequestState<T, E> {
+export interface QueryRequestState<T, E = Error, K = CacheKeyParam> extends RequestState<T, E> {
   /**
    * Retained previous value, if activated in options
    */
@@ -58,7 +58,7 @@ export interface QueryRequestState<T, E = Error> extends RequestState<T, E> {
   manager: Manager;
 }
 
-export interface QueryCallbacks<T, E = Error> {
+export interface QueryCallbacks<T, E = Error, K = CacheKeyParam> {
   /**
    * Request callback, called immediately before the query request gets dispatched.
    * In case of retries, this does not get called again upon retry, only at the first try.
@@ -91,7 +91,7 @@ export interface QueryCallbacks<T, E = Error> {
    * High level notification method, which gets called every time there is a change
    * to a query request state.
    */
-  onUpdate?: (state: QueryRequestState<T, E>, reason: SubReason, manager: Manager) => void;
+  onUpdate?: (state: QueryRequestState<T, E, K>, reason: SubReason, manager: Manager) => void;
 }
 
 export type QueryOptionsBase<T, RT = T, ST = T, E = Error>
@@ -172,8 +172,8 @@ export type QueryOptionsBase<T, RT = T, ST = T, E = Error>
   cacheKeyFunc?: CacheKeyFunc;  
 }
 
-export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = unknown[]>
-  extends QueryOptionsBase<T, RT, ST, E>, QueryCallbacks<T, E>, Omit<RequestQueryOptions<T, RT, ST, E>, 'type'> {
+export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = unknown[], K = CacheKeyParam>
+  extends QueryOptionsBase<T, RT, ST, E>, QueryCallbacks<T, E, K>, Omit<RequestQueryOptions<T, RT, ST, E>, 'type'> {
   /**
    * initialValue is provided only at start, but if a request fails after that
    * or succeds - its value will be used.
@@ -236,12 +236,12 @@ export interface QueryOptions<T, RT = T, ST = T, E = Error, ARGS extends unknown
  * @param options Options for the behavior, optional.
  * @param args Arguments, matching those that are required for the request function.
  */
-export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = unknown[]>(
+export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = unknown[], K extends CacheKeyParam = CacheKeyParam>(
   /**
    * Caching key, must be unique as it will be used for caching. By default it uses deep stringify,
    * which does deep compare. If a shallow one is needed, a different cacheKeyFunc can be provided in options.
    */
-  key: CacheKeyParam,
+  key: K,
   /**
    * Function to be call for the request. First argument is always the key that is then followed by other args.
    */
@@ -250,14 +250,14 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
    * Options on how to treat the request, which includes caching, refresh logic, and similar. See QueryOptions
    * for more details.
    */
-  options?: QueryOptions<T, RT, ST, E, ARGS>,
+  options?: QueryOptions<T, RT, ST, E, Parameters<typeof request>, K>,
   /**
    * Optional arguments to be appended after the first key argument to the request function.
    */
-  ...args: QueryArgs<CacheKeyParam, ARGS>
-): QueryRequestState<T, E> {
+  ...args: QueryArgs<K, Parameters<typeof request>>
+): QueryRequestState<T, E, K> {
   const defaultOptions = useContext(QueryOptionsContext) as QueryOptionsBase<T, RT, ST, E>;
-  const opt: QueryOptions<T, RT, ST, E, ARGS> = {
+  const opt: QueryOptions<T, RT, ST, E, Parameters<typeof request>, K> = {
     ...defaultOptions,
     ...(options || {})
   };
@@ -293,7 +293,7 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
         return {};
       }
 
-      return manager.request<T, RT, ST, E, ARGS>(
+      return manager.request<T, RT, ST, E, Parameters<typeof request>>(
         cacheKey,
         requestRef.current,
         {
@@ -311,7 +311,7 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
           tags: stableTags,
           type: 'query'
         },
-        ...(args as ARGS) // it is safe to do here, as we check the key to make sure the args are legit
+        ...(args as Parameters<typeof request>) // it is safe to do here, as we check the key to make sure the args are legit
       );
     },
     [
@@ -321,7 +321,9 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
       opt.staleTTL,
       opt.retries,
       opt.retryDecay,
-      opt.storage,
+      opt.storage?.fromCache,
+      opt.storage?.toCache,
+      opt.storage?.always,
       opt.forced,
       opt.transform,
       opt.validate,
@@ -398,15 +400,16 @@ export function useQuery<T, RT = T, ST = T, E = Error, ARGS extends unknown[] = 
   );
 
   const [state, setState] = useState<RequestState<T, E>>(() => {
-    const initial: RequestState<T, E> = (cacheKey ? manager.state(cacheKey) : undefined) || {};
+    const initial: RequestState<T, E> | undefined = cacheKey ? manager.state(cacheKey) : undefined;
+    const data: T | undefined = initial ? initial.data : cacheKey ? manager.fromCache(cacheKey, options?.storage?.fromCache) : undefined;
     return {
-      ...initial,
-      data: typeof initial.data === 'undefined' ? opt.initialValue : initial.data
+      ...(initial || {}),
+      data: typeof data === 'undefined' ? opt.initialValue : data
     };
   });
   const previousValue = useRef<T | undefined>(undefined);
   // Resolve and reject of the promise to be called when a manager
-  // finishes the reques. This is only filled in if in Suspense mode
+  // finishes the request. This is only filled in if in Suspense mode
   // and bene at least called once with a promise thrown.
   const suspensePromise = useRef<[(value: T) => void, (err: any) => void]>();
 
